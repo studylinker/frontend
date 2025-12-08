@@ -5,7 +5,7 @@ import axios from "axios";
 const api = axios.create({
   baseURL:
     window.location.hostname === "localhost"
-      ? "https://localhost:8080/api"
+      ? "http://localhost:8080/api"
       : "https://gachon.studylink.click/api",
 });
 
