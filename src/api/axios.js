@@ -5,8 +5,8 @@ import axios from "axios";
 const api = axios.create({
   baseURL:
     window.location.hostname === "localhost"
-      ? "http://localhost:8080/api"
-      : "http://gachon.studylink.click/api",
+      ? "https://localhost:8080/api"
+      : "https://gachon.studylink.click/api",
 });
 
 // ✅ 요청 인터셉터 (로그 + 토큰 주입)
