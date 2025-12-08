@@ -167,18 +167,23 @@ const StudyGroupDetailModal = ({ group, onClose, userId }) => {
                   <ul className="list-group mb-3">
                     {members.filter(m => m.status === "APPROVED").map((m) => (
                       <li key={m.memberId} className="list-group-item d-flex justify-content-between">
+                      <div>
                         <span>{m.name}</span>
+                        <span style={{ marginLeft: "10px", color: "#888" }}>
+                          ({m.mannerScore ?? 0}점)
+                        </span>
+                      </div>
 
-                        {m.userId !== leaderId && (
-                          <button
-                            className="btn btn-sm"
-                            style={{ backgroundColor: "#F5B7B1", color: "#000" }}
-                            onClick={() => handleKick(m.memberId)}
-                          >
-                            강퇴
-                          </button>
-                        )}
-                      </li>
+                      {m.userId !== leaderId && (
+                        <button
+                          className="btn btn-sm"
+                          style={{ backgroundColor: "#F5B7B1", color: "#000" }}
+                          onClick={() => handleKick(m.memberId)}
+                        >
+                          강퇴
+                        </button>
+                      )}
+                    </li>
                     ))}
                   </ul>
                 )}
