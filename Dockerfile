@@ -14,7 +14,7 @@ COPY --from=builder /app/build /usr/share/nginx/html
 # (Vue나 Vite라면 /app/dist 일 수 있음. 확인 필요!)
 
 # Nginx 기본 설정 (SPA 라우팅 문제 해결을 위해 필요할 수 있음)
-# COPY nginx.conf /etc/nginx/conf.d/default.conf 
+# COPY default.conf /etc/nginx/conf.d/default.conf 
 
 EXPOSE 80
 CMD ["nginx", "-g", "daemon off;"]
