@@ -158,7 +158,7 @@ const Login = () => {
             onClick={() => setMode("signin")}
             className={mode === "signin" ? "active" : ""}
           >
-            SIGN IN
+            SIGN IN 울랄라
           </a>
         </li>
         <li>
