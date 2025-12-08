@@ -33,40 +33,16 @@ const MyPage = () => {
     }
   };
 
-  const fetchJoinedGroups = async (userId) => {
-    try {
-      const allGroupsRes = await api.get("/study-groups");
-      const groups = allGroupsRes.data || [];
+const fetchJoinedGroups = async (userId) => {
+  try {
+    const res = await api.get(`/users/${userId}/groups`);
+    const groups = res.data || [];
 
-      const myGroups = [];
-
-      for (const g of groups) {
-        try {
-          const memRes = await api.get(
-            `/study-groups/${g.groupId}/members/${userId}`
-          );
-
-          if (memRes.data && memRes.data.status === "APPROVED") {
-            const leaderRes = await api.get(
-              `/study-groups/${g.groupId}/leader`
-            );
-
-            const leaderName = leaderRes.data?.name || "(알 수 없음)";
-
-            myGroups.push({
-              ...g,
-              status: memRes.data.status,
-              leaderName: leaderName,
-            });
-          }
-        } catch {}
-      }
-
-      setJoinedGroups(myGroups);
-    } catch (err) {
-      console.error("참여 그룹 조회 오류:", err);
-    }
-  };
+    setJoinedGroups(groups); // 바로 저장
+  } catch (err) {
+    console.error("참여 그룹 조회 오류:", err);
+  }
+};
 
   const fetchMannerScore = async (userId) => {
     try {
