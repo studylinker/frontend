@@ -1,3 +1,5 @@
+// src/pages/admin/charts/MemberRatioChart.jsx
+
 import React, { useEffect, useRef } from "react";
 import Chart from "chart.js/auto";
 
@@ -6,50 +8,61 @@ const MemberRatioChart = ({ labels, data }) => {
     const chartInstanceRef = useRef(null);
 
     useEffect(() => {
-        // 1. 이전 인스턴스 파괴
+        // 기존 차트 삭제
         if (chartInstanceRef.current) {
             chartInstanceRef.current.destroy();
         }
-        
-        if (!chartRef.current) return;
 
+        if (!chartRef.current) return;
         const ctx = chartRef.current.getContext("2d");
 
-        // 2. 새 차트 인스턴스 생성
-        const newChartInstance = new Chart(ctx, {
-            type: "pie",
+        // 새 차트 생성 (수평 바 차트)
+        const newChart = new Chart(ctx, {
+            type: "bar",
             data: {
                 labels,
                 datasets: [
                     {
+                        label: "카테고리 비율",
                         data,
-                        backgroundColor: ["#ff6384", "#36a2eb", "#ffcd56"],
-                        hoverOffset: 4
+                        backgroundColor: "#36a2eb",
                     },
                 ],
             },
             options: {
+                indexAxis: "y", // ← ★ 수평차트 핵심 설정
                 responsive: true,
                 maintainAspectRatio: false,
                 plugins: {
-                    title: { display: true, text: '사용자 별 카테고리' }
-                }
-            }
+                    title: {
+                        display: true,
+                        text: "사용자 별 카테고리 비율",
+                    },
+                    legend: {
+                        display: false, // label 하나만 있을 때는 숨기는 게 깔끔함
+                    },
+                },
+                scales: {
+                    x: {
+                        beginAtZero: true,
+                        ticks: {
+                            stepSize: 1,
+                        },
+                    },
+                },
+            },
         });
 
-        chartInstanceRef.current = newChartInstance;
+        chartInstanceRef.current = newChart;
 
-        // 3. 클린업 함수: 컴포넌트 업데이트/제거 시 차트 파괴
+        // 정리(cleanup)
         return () => {
-            if (chartInstanceRef.current) {
-                chartInstanceRef.current.destroy();
-                chartInstanceRef.current = null;
-            }
+            chartInstanceRef.current?.destroy();
         };
     }, [labels, data]);
 
     return (
-        <div style={{ height: '300px' }}>
+        <div style={{ height: "350px" }}>
             <canvas ref={chartRef}></canvas>
         </div>
     );
