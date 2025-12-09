@@ -7,7 +7,6 @@ const ScheduleDetailModal = ({ scheduleId, onClose, userId, onOpenAttendance }) 
   const [loading, setLoading] = useState(true);
   const [groupInfo, setGroupInfo] = useState(null);
 
-  // 헬퍼: snake_case / camelCase 모두 대응
   const get = (obj, ...keys) => {
     for (const k of keys) {
       if (obj[k] !== undefined && obj[k] !== null) return obj[k];
