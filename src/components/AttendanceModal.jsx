@@ -47,7 +47,7 @@ const AttendanceModal = ({ scheduleId, onClose }) => {
         let attendanceMap = {};
         try {
           const attRes = await api.get(
-            `/attendance/scchedule/${scheduleId}`
+            `/attendance/schedule/${scheduleId}`
           );
           (attRes.data || []).forEach((a) => {
             const userId = a.userId ?? a.user_id;

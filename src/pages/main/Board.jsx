@@ -10,10 +10,6 @@ const Board = () => {
   const [allPosts, setAllPosts] = useState([]);
   const [keyword, setKeyword] = useState("");
   const { user } = useContext(AuthContext);
-
-  const [newComment, setNewComment] = useState({});
-  const [comments, setComments] = useState({});
-  const [reviewRatings, setReviewRatings] = useState({});
   const [groupTitles, setGroupTitles] = useState({});
 
   const navigate = useNavigate();
@@ -26,12 +22,14 @@ const Board = () => {
       const res = await api.get("/study-posts");
       const list = Array.isArray(res.data) ? res.data : [];
 
+      // 최신순 정렬 추가
+      list.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
       setAllPosts(list);
       setPosts(list.filter((p) => p.type === targetTab));
 
       if (targetTab === "REVIEW") {
-        fetchGroupTitles(list);   // ⭐ 추가
-        fetchReviewRatings(list);
+        fetchGroupTitles(list);
       }
     } catch (err) {
       console.error("게시글 조회 실패:", err);
@@ -39,7 +37,7 @@ const Board = () => {
   };
 
   // =============================
-  // ⭐ 최초 렌더링 시 게시판 로딩
+  // 최초 렌더링 시 게시판 로딩
   // =============================
   useEffect(() => {
     if (user) fetchPosts("FREE");
@@ -52,17 +50,6 @@ const Board = () => {
     if (user) fetchPosts(tab);
   }, [tab, user]);
 
-  // =============================
-  // 🔹 댓글 조회
-  // =============================
-  const fetchComments = async (postId) => {
-    try {
-      const res = await api.get(`/study-posts/${postId}/comments`);
-      setComments((prev) => ({ ...prev, [postId]: res.data }));
-    } catch (err) {
-      console.error("댓글 조회 실패:", err);
-    }
-  };
 
   // =============================
   // 🔹 REVIEW 글 → 스터디명 조회
@@ -92,37 +79,6 @@ const Board = () => {
   };
 
   // =============================
-  // 🔹 리뷰 평점 조회
-  // =============================
-  const fetchReviewRatings = async (list) => {
-    try {
-      const reviewPosts = list.filter((p) => p.type === "REVIEW");
-      const ratingMap = {};
-
-      for (const p of reviewPosts) {
-        try {
-          const res = await api.get(`/study-posts/${p.postId}/reviews`);
-          const reviews = Array.isArray(res.data) ? res.data : [];
-
-          if (reviews.length > 0) {
-            const sum = reviews.reduce((acc, r) => acc + (r.rating || 0), 0);
-            ratingMap[p.postId] = {
-              avg: sum / reviews.length,
-              count: reviews.length,
-            };
-          } else {
-            ratingMap[p.postId] = { avg: null, count: 0 };
-          }
-        } catch {}
-      }
-
-      setReviewRatings(ratingMap);
-    } catch (err) {
-      console.error("평점 계산 실패:", err);
-    }
-  };
-
-  // =============================
   // 🔹 검색
   // =============================
   const handleSearch = () => {
@@ -141,59 +97,6 @@ const Board = () => {
     );
 
     setPosts(filtered);
-  };
-
-  // =============================
-  // 🔹 댓글 등록
-  // =============================
-  const handleAddComment = async (postId) => {
-    const text = newComment[postId] || "";
-    if (!text.trim()) return;
-
-    try {
-      await api.post(`/study-posts/${postId}/comments`, { content: text });
-
-      setNewComment((prev) => ({ ...prev, [postId]: "" }));
-      await fetchComments(postId);
-
-      alert("댓글 등록 완료");
-    } catch (err) {
-      console.error(err);
-      alert("댓글 등록 실패");
-    }
-  };
-
-  // =============================
-  // 🔹 댓글 삭제
-  // =============================
-  const handleDeleteComment = async (postId, commentId) => {
-    try {
-      await api.delete(`/study-posts/${postId}/comments/${commentId}`);
-      fetchComments(postId);
-      alert("댓글 삭제 완료");
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  // =============================
-  // 🔹 신고
-  // =============================
-  const handleReport = async (postId) => {
-    const reason = prompt("신고 사유를 입력하세요");
-    if (!reason) return;
-
-    try {
-      await api.patch(`/study-posts/${postId}`, {
-        reported: true,
-        reportReason: reason,
-      });
-
-      alert("신고 접수 완료");
-    } catch (err) {
-      console.error(err);
-      alert("신고 실패");
-    }
   };
 
   return (
@@ -259,7 +162,7 @@ const Board = () => {
               <th style={{ width: "8%" }}>No</th>
               <th style={{ width: "55%" }}>제목</th>
               <th style={{ width: "15%" }}>글쓴이</th>
-              <th style={{ width: "20%" }}>작성시간</th>
+              <th style={{ width: "20%" }}>작성날짜</th>
             </tr>
           </thead>
           <tbody>
