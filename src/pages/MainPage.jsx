@@ -521,10 +521,10 @@ const MainPage = () => {
         </div>
       </div>
 
-      {/* 일정 생성 모달 */}
+      {/* 일정 생성/수정 모달 */}
       {showCreateModal && (
         <ScheduleCreateModal
-          mode={createMode}
+          mode={modalMode === "update" ? "update" : createMode}
           leaderGroups={leaderGroups}
           baseDate={
             modalMode === "update"
@@ -532,9 +532,15 @@ const MainPage = () => {
               : selectedDate.toLocaleDateString("en-CA")
           }
           scheduleData={editScheduleData}
-          onClose={() => setShowCreateModal(false)}
+          onClose={() => {
+            setShowCreateModal(false);
+            setModalMode("create");   // 모드 초기화
+            setEditScheduleData(null);
+          }}
           onSuccess={() => {
             setShowCreateModal(false);
+            setModalMode("create");
+            setEditScheduleData(null);
             loadSchedules();
           }}
         />
