@@ -215,8 +215,8 @@ const StudyGroupDetailModal = ({ group, onClose, userId }) => {
                       <span>
                         {m.name}
                         {m.mannerScore !== undefined && (
-                          <span className="badge bg-secondary ms-2">
-                            {m.mannerScore}점
+                          <span className="badge bg-warning text-dark ms-2">
+                            매너 {m.mannerScore}점
                           </span>
                         )}
                       </span>
@@ -252,7 +252,7 @@ const StudyGroupDetailModal = ({ group, onClose, userId }) => {
               <ul className="list-group">
                 {schedules.map((s) => (
                   <li key={s.scheduleId} className="list-group-item">
-                    <strong>{s.title}</strong> — {s.startTime.slice(0, 16)}
+                    <strong>{s.title}</strong> — {s.startTime.replace("T", " ").slice(0, 16)}
                   </li>
                 ))}
               </ul>

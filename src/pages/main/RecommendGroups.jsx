@@ -395,7 +395,7 @@ const RecommendGroups = () => {
                 <p><strong>추천 점수:</strong> ⭐ {(selectedGroup.finalScore * 100).toFixed(0)}점</p>
                 {Array.isArray(selectedGroup.category) && (
                   <div className="mt-2">
-                    <strong>카테고리:</strong>
+                    <strong>카테고리:</strong>{" "}
                     {selectedGroup.category.map((tag, idx) => (
                       <span key={idx} className="badge bg-secondary me-1">#{tag}</span>
                     ))}
