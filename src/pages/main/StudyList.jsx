@@ -118,43 +118,57 @@ const StudyList = () => {
     checkUserMembership();
   }, [myUserId, groups]);
 
-  // -------------------------------
-  // Google Maps 초기화 (모달 열릴 때)
-  // -------------------------------
-  useEffect(() => {
-    if (!showForm) return;
-    if (!window.google || !window.google.maps) return;
+// -------------------------------
+// Google Maps 초기화 (모달 열릴 때마다 새로 생성하도록 수정)
+// -------------------------------
+useEffect(() => {
 
-    const container = mapContainerRef.current;
-    if (!container) return;
+  // ★ 모달 닫혔으면 cleanup 실행하고 지도 제거
+  if (!showForm) {
+    googleMapRef.current = null;      // ★ 수정: 지도 객체 제거
+    markerRef.current = null;
+    return;
+  }
 
-    // 지도 초기 생성
-    googleMapRef.current = new window.google.maps.Map(container, {
-      center: userLocation || { lat: 37.45, lng: 127.12 },
-      zoom: 15,
-    });
+  // Google 객체 로드 확인
+  if (!window.google || !window.google.maps) return;
 
-    // 지도 클릭 이벤트 → 마커 + 좌표 저장
-    googleMapRef.current.addListener("click", (e) => {
-      const lat = e.latLng.lat();
-      const lng = e.latLng.lng();
+  const container = mapContainerRef.current;
+  if (!container) return;
 
-      if (!markerRef.current) {
-        markerRef.current = new window.google.maps.Marker({
-          position: { lat, lng },
-          map: googleMapRef.current,
-        });
-      } else {
-        markerRef.current.setPosition({ lat, lng });
-      }
+  // ★ 지도는 모달 열릴 때마다 항상 새로 생성
+  googleMapRef.current = new window.google.maps.Map(container, {
+    center: userLocation || { lat: 37.45, lng: 127.12 },
+    zoom: 15,
+  });
 
-      setFormData((prev) => ({
-        ...prev,
-        latitude: lat,
-        longitude: lng,
-      }));
-    });
-  }, [showForm, userLocation]);
+  // 지도 클릭 → 마커 및 좌표 저장
+  const clickListener = googleMapRef.current.addListener("click", (e) => {
+    const lat = e.latLng.lat();
+    const lng = e.latLng.lng();
+
+    if (!markerRef.current) {
+      markerRef.current = new window.google.maps.Marker({
+        position: { lat, lng },
+        map: googleMapRef.current,
+      });
+    } else {
+      markerRef.current.setPosition({ lat, lng });
+    }
+
+    setFormData((prev) => ({
+      ...prev,
+      latitude: lat,
+      longitude: lng,
+    }));
+  });
+
+  // ★ cleanup: 모달 닫을 때 이벤트 제거
+  return () => {
+    if (clickListener) window.google.maps.event.removeListener(clickListener);
+  };
+
+}, [showForm, userLocation]);   // ★ showForm만으로도 충분하지만 userLocation도 포함
 
   // -------------------------------
   // 스터디 생성

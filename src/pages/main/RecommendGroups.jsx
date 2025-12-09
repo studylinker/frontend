@@ -1,5 +1,6 @@
 // src/pages/main/RecommendGroups.jsx
 import React, { useState, useEffect, useRef } from "react";
+import { useLocation } from "react-router-dom";
 import api from "../../api/axios";
 import "./StudyListButtons.css";
 
@@ -19,7 +20,7 @@ const RecommendGroups = () => {
   const mapContainerRef = useRef(null);     // 지도 DOM
   const googleMapRef = useRef(null);        // 지도 객체
   const markersRef = useRef([]);            // 마커 리스트
-
+  const location = useLocation();
 
   // ======================================================
   // 0) 로그인 사용자 정보 가져오기
@@ -124,31 +125,47 @@ const RecommendGroups = () => {
     }
   };
 
-
   // ======================================================
-  // 4) Google Maps 초기화 (단 1회 실행)
+  // 4) Google Maps 초기화 — 페이지(/main/recommend) 들어올 때만 실행되도록 변경
   // ======================================================
   useEffect(() => {
-    if (googleMapRef.current) return;                 // 이미 생성됨
+
+    // ★ 이미 map 객체가 있다면 재생성 방지
+    if (googleMapRef.current) return;
+
+    // ★ 현재 페이지가 추천 페이지가 아니면 지도 생성 X
+    if (location.pathname !== "/main/recommend") return;  // ★ 수정된 부분
+
     if (!window.google || !window.google.maps) return;
 
     const container = mapContainerRef.current;
     if (!container) return;
 
+    // ⭐ 지도 생성 (페이지 진입 시 1회)
     googleMapRef.current = new window.google.maps.Map(container, {
-      center: { lat: 37.5665, lng: 126.9780 },       // 기본 서울 중심
+      center: { lat: 37.5665, lng: 126.9780 },
       zoom: 13,
     });
-  }, []);
+
+    console.log("✅ RecommendGroups Google Map CREATED");
+
+    // ★ cleanup → 페이지 벗어날 때 지도 제거
+    return () => {
+      console.log("🧹 RecommendGroups Google Map DESTROYED");
+      googleMapRef.current = null;   // 핵심!
+    };
+
+  }, [location.pathname]);  // ★ 페이지 이동 시 감지되도록 수정된 의존성
+
 
 
   // ======================================================
   // 5) 마커 갱신 (groups 또는 radius 변경 시)
   // ======================================================
   useEffect(() => {
-    if (!googleMapRef.current) return;
+    if (!googleMapRef.current) return;   // 지도 없으면 실행 X
 
-    // 기존 마커 전체 제거
+    // 기존 마커 제거
     markersRef.current.forEach((m) => m.setMap(null));
     markersRef.current = [];
 

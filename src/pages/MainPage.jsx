@@ -158,7 +158,7 @@ const MainPage = () => {
   }, [userId]);
 
   // -----------------------------------
-  // 사용자 GPS 가져오기
+  // 1) 사용자 GPS 가져오기
   // -----------------------------------
   useEffect(() => {
     navigator.geolocation.getCurrentPosition(
@@ -171,33 +171,53 @@ const MainPage = () => {
     );
   }, []);
 
-  // -----------------------------------
-  // Google 지도 초기화 (한 번만!)
-  // -----------------------------------
+
+  // ===================================================================
+  // 2) Google 지도 초기화 — ★ HOME(/main) 들어올 때마다 1번 생성
+  // ===================================================================
   useEffect(() => {
-    if (googleMapRef.current) return;                       // 이미 생성됨
+    // HOME 페이지가 아닐 때 → 지도 생성 X
+    if (location.pathname !== "/main") return;
+
+    // Google Maps 로드되었는지 확인
     if (!window.google || !window.google.maps) return;
 
     const container = mapContainerRef.current;
     if (!container) return;
 
-    googleMapRef.current = new window.google.maps.Map(container, {
-      center: { lat: 37.5665, lng: 126.9780 },
-      zoom: 13,
-    });
-  }, []);
+    // 기존 지도 있으면 재생성 방지
+    if (!googleMapRef.current) {
+      googleMapRef.current = new window.google.maps.Map(container, {
+        center: { lat: 37.5665, lng: 126.9780 },
+        zoom: 13,
+      });
+      console.log("✅ Google Map CREATED");
+    }
 
-  // -----------------------------------
-  // 마커 갱신 (schedules 변경 시만)
-  // -----------------------------------
+    // -------------------------------
+    // cleanup → HOME 페이지 벗어나면 map을 비움
+    // -------------------------------
+    return () => {
+      console.log("🧹 Google Map CLEANED (HOME OUT)");
+      googleMapRef.current = null;   // ← 중요!
+    };
+  }, [location.pathname]); // ← HOME 들어올 때만 실행됨
+
+
+
+  // ===================================================================
+  // 3) 마커 갱신 — 지도는 유지하고 마커만 바뀜
+  // ===================================================================
   useEffect(() => {
-    if (!googleMapRef.current) return;
+    if (!googleMapRef.current) return; // 지도 없으면 실행 X
 
     // 기존 마커 제거
     markerRefs.current.forEach((m) => m.setMap(null));
     markerRefs.current = [];
 
-    // 내 위치 마커
+    // -------------------------------
+    // 🔵 내 위치 마커
+    // -------------------------------
     if (userLocation) {
       const myMarker = new window.google.maps.Marker({
         position: userLocation,
@@ -209,7 +229,9 @@ const MainPage = () => {
       googleMapRef.current.setCenter(userLocation);
     }
 
-    // 스터디 일정 마커
+    // -------------------------------
+    // 🔴 스터디 일정 마커
+    // -------------------------------
     schedules.forEach((s) => {
       if (!s.lat || !s.lng) return;
 
@@ -466,7 +488,8 @@ const MainPage = () => {
 
                       <div className="col-md-6 d-flex align-items-stretch">
                         <div
-                          ref={mapContainerRef}   // ← 여기! id 제거됨, ref 연결됨
+                          id="map"
+                          ref={mapContainerRef} 
                           style={{
                             width: "100%",
                             height: "400px",
