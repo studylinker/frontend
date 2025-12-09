@@ -107,9 +107,14 @@ const RecommendGroups = () => {
                 typeof detail.data.category === "string"
                   ? JSON.parse(detail.data.category)
                   : detail.data.category,
+              leaderName: detail.data.leaderName ?? "알 수 없음",
+              finalScore: g.finalScore ?? g.score ?? null,
             };
           } catch {
-            return g;
+            return {
+              ...g,
+              leaderName: "알 수 없음",
+            }
           }
         })
       );
@@ -308,7 +313,8 @@ const RecommendGroups = () => {
                 <div className="card-body">
                   <h5><strong>{name}</strong></h5>
                   <p>{g.description ?? "-"}</p>
-
+                  <p><strong>거리:</strong> {g.distanceKm ? g.distanceKm.toFixed(1) : "-"} km</p>
+                  <p><strong>추천 점수:</strong> ⭐ {g.finalScore ? g.finalScore.toFixed(2) : "-"}</p>
                   {Array.isArray(g.category) && (
                     <p>
                       <strong>카테고리: </strong>
@@ -316,10 +322,7 @@ const RecommendGroups = () => {
                         <span key={idx} className="badge bg-secondary me-1">#{tag}</span>
                       ))}
                     </p>
-                  )}
-
-                  <p><strong>거리:</strong> {g.distanceKm ? g.distanceKm.toFixed(1) : "-"} km</p>
-
+                  )}                  
                   <button
                     className="study-btn study-btn-detail me-2"
                     onClick={() => {
@@ -361,6 +364,7 @@ const RecommendGroups = () => {
 
               <div className="modal-body">
                 <p><strong>설명:</strong> {selectedGroup.description ?? "-"}</p>
+                <p><strong>리더:</strong> {selectedGroup.leaderName ?? "알 수 없음"}</p>
                 <p><strong>주소:</strong> {selectedAddress || "주소 변환 중..."}</p>
                 <p><strong>거리:</strong> {selectedGroup.distanceKm ? selectedGroup.distanceKm.toFixed(1) : "-"} km</p>
                 <p><strong>추천 점수:</strong> ⭐ {selectedGroup.finalScore?.toFixed(2) ?? "-"}</p>
