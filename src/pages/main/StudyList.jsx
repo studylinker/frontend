@@ -13,7 +13,6 @@ function getDistance(lat1, lng1, lat2, lng2) {
     Math.cos(lat1 * (Math.PI / 180)) *
       Math.cos(lat2 * (Math.PI / 180)) *
       Math.sin(dLng / 2) ** 2;
-
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
@@ -31,10 +30,10 @@ const StudyList = () => {
   const [selectedAddress, setSelectedAddress] = useState("");
   const [showModal, setShowModal] = useState(false);
 
-  // Google Map
-  const mapRef = useRef(null);
-  const googleMap = useRef(null);
-  const markerRef = useRef(null);
+  // Google Maps
+  const mapContainerRef = useRef(null); // 지도 DOM
+  const googleMapRef = useRef(null); // 지도 객체
+  const markerRef = useRef(null); // 생성 마커 객체
 
   // 생성 폼 데이터
   const [formData, setFormData] = useState({
@@ -46,7 +45,6 @@ const StudyList = () => {
     longitude: null,
   });
 
-  // 로그인 사용자 정보
   const [myUserId, setMyUserId] = useState(null);
   const [isLeader, setIsLeader] = useState(false);
 
@@ -75,12 +73,11 @@ const StudyList = () => {
   }, []);
 
   // -------------------------------
-  // 스터디 목록 조회
+  // 스터디 그룹 목록 조회
   // -------------------------------
   const loadGroups = async () => {
     try {
       const res = await api.get("/study-groups");
-
       const parsed = res.data.map((g) => ({
         ...g,
         categoryList:
@@ -88,11 +85,9 @@ const StudyList = () => {
             ? JSON.parse(g.category)
             : [],
       }));
-
       setGroups(parsed);
     } catch (err) {
       console.error("스터디 조회 실패:", err);
-      alert("스터디 목록을 불러올 수 없습니다.");
     }
   };
 
@@ -108,20 +103,15 @@ const StudyList = () => {
 
     const checkUserMembership = async () => {
       const newSet = new Set();
-
       for (const g of groups) {
         try {
           const res = await api.get(
             `/study-groups/${g.groupId}/members/${myUserId}`
           );
-          if (res.data && res.data.status !== "REJECTED") {
+          if (res.data && res.data.status !== "REJECTED")
             newSet.add(g.groupId);
-          }
-        } catch (err) {
-          // 가입 안 한 그룹은 무시
-        }
+        } catch {}
       }
-
       setJoinedGroups(newSet);
     };
 
@@ -129,32 +119,30 @@ const StudyList = () => {
   }, [myUserId, groups]);
 
   // -------------------------------
-  // Google Maps 생성 (스터디 생성 모달)
+  // Google Maps 초기화 (모달 열릴 때)
   // -------------------------------
   useEffect(() => {
     if (!showForm) return;
     if (!window.google || !window.google.maps) return;
 
-    const container = document.getElementById("createMap");
+    const container = mapContainerRef.current;
     if (!container) return;
 
-    googleMap.current = new window.google.maps.Map(container, {
-      center: {
-        lat: userLocation?.lat || 37.45,
-        lng: userLocation?.lng || 127.12,
-      },
+    // 지도 초기 생성
+    googleMapRef.current = new window.google.maps.Map(container, {
+      center: userLocation || { lat: 37.45, lng: 127.12 },
       zoom: 15,
     });
 
-    // 지도 클릭 시 마커 표시 + 좌표 저장
-    googleMap.current.addListener("click", (e) => {
+    // 지도 클릭 이벤트 → 마커 + 좌표 저장
+    googleMapRef.current.addListener("click", (e) => {
       const lat = e.latLng.lat();
       const lng = e.latLng.lng();
 
       if (!markerRef.current) {
         markerRef.current = new window.google.maps.Marker({
           position: { lat, lng },
-          map: googleMap.current,
+          map: googleMapRef.current,
         });
       } else {
         markerRef.current.setPosition({ lat, lng });
@@ -198,42 +186,34 @@ const StudyList = () => {
   };
 
   // -------------------------------
-  // 리더 조회
+  // 상세 모달 열기
   // -------------------------------
   const fetchGroupLeader = async (groupId) => {
     try {
       const res = await api.get(`/study-groups/${groupId}/leader`);
       return res.data;
-    } catch (err) {
-      console.error("리더 조회 실패:", err);
+    } catch {
       return null;
     }
   };
 
-  // -------------------------------
-  // 상세 모달 열기
-  // -------------------------------
   const openDetailModal = async (group) => {
     const leader = await fetchGroupLeader(group.groupId);
-
-    if (leader && leader.userId === myUserId) setIsLeader(true);
-    else setIsLeader(false);
+    setIsLeader(leader && leader.userId === myUserId);
 
     setSelectedGroup({
       ...group,
       group_id: group.groupId,
-      leaderName: leader?.name || "정보 없음",
+      leaderName: leader?.name ?? "정보 없음",
     });
 
-    // 구글 지도 reverse geocoding
     if (window.google?.maps) {
       const geocoder = new window.google.maps.Geocoder();
       geocoder.geocode(
         { location: { lat: group.latitude, lng: group.longitude } },
         (results, status) => {
-          if (status === "OK" && results[0]) {
+          if (status === "OK" && results[0])
             setSelectedAddress(results[0].formatted_address);
-          }
         }
       );
     }
@@ -251,9 +231,9 @@ const StudyList = () => {
       setJoinedGroups((prev) => new Set(prev).add(groupId));
     } catch (err) {
       const msg = err.response?.data || "신청 실패";
-      if (msg.includes("이미 신청했거나 가입된")) {
+      if (msg.includes("이미 신청했거나 가입된"))
         setJoinedGroups((prev) => new Set(prev).add(groupId));
-      }
+
       alert(msg);
     }
   };
@@ -270,14 +250,13 @@ const StudyList = () => {
       );
     })
     .map((g) => {
-      if (userLocation) {
+      if (userLocation)
         g.distance = getDistance(
           userLocation.lat,
           userLocation.lng,
           g.latitude,
           g.longitude
         );
-      }
       return g;
     })
     .sort((a, b) => (a.distance || Infinity) - (b.distance || Infinity));
@@ -289,6 +268,7 @@ const StudyList = () => {
     <div>
       <h2><strong>스터디 목록</strong></h2>
       <br />
+
       <input
         className="form-control mb-3"
         placeholder="스터디 검색..."
@@ -302,7 +282,7 @@ const StudyList = () => {
         </button>
       </div>
 
-      {/* 목록 */}
+      {/* 스터디 목록 */}
       <div className="row">
         {filteredGroups.map((g) => (
           <div key={g.groupId} className="col-md-6 mb-3">
@@ -310,8 +290,10 @@ const StudyList = () => {
               <div className="card-body">
                 <h5><strong>{g.title}</strong></h5>
                 <p>{g.description}</p>
+
                 <p>
-                  거리: {g.distance ? `${g.distance.toFixed(1)} km` : "계산 불가"}
+                  거리:{" "}
+                  {g.distance ? `${g.distance.toFixed(1)} km` : "계산 불가"}
                 </p>
 
                 <button
@@ -340,7 +322,7 @@ const StudyList = () => {
         ))}
       </div>
 
-      {/* 상세 모달 */}
+      {/* 상세 보기 모달 */}
       {showModal && selectedGroup && (
         isLeader ? (
           <StudyGroupDetailModal
@@ -349,10 +331,7 @@ const StudyList = () => {
             onClose={() => setShowModal(false)}
           />
         ) : (
-          <div
-            className="modal d-block"
-            style={{ background: "rgba(0,0,0,0.4)" }}
-          >
+          <div className="modal d-block" style={{ background: "rgba(0,0,0,0.4)" }}>
             <div className="modal-dialog">
               <div className="modal-content">
                 <div
@@ -367,21 +346,17 @@ const StudyList = () => {
                 </div>
 
                 <div className="modal-body">
-                  <p><strong>리더</strong> {selectedGroup.leaderName}</p>
-                  <p><strong>설명</strong> {selectedGroup.description}</p>
-                  <p><strong>주소</strong> {selectedAddress}</p>
+                  <p><strong>리더:</strong> {selectedGroup.leaderName}</p>
+                  <p><strong>설명:</strong> {selectedGroup.description}</p>
+                  <p><strong>주소:</strong> {selectedAddress}</p>
 
-                  <div className="mb-2">
-                    <strong>카테고리</strong>
+                  <div className="mt-2">
+                    <strong>카테고리:</strong>
                     {selectedGroup.categoryList.map((tag, idx) => (
                       <span
                         key={idx}
                         className="badge me-2"
-                        style={{
-                          backgroundColor: "#bfb9b9",
-                          color: "#fff",
-                          fontWeight: "500",
-                        }}
+                        style={{ backgroundColor: "#bfb9b9", color: "#fff" }}
                       >
                         #{tag}
                       </span>
@@ -405,10 +380,7 @@ const StudyList = () => {
 
       {/* 생성 모달 */}
       {showForm && (
-        <div
-          className="modal d-block"
-          style={{ background: "rgba(0,0,0,0.4)" }}
-        >
+        <div className="modal d-block" style={{ background: "rgba(0,0,0,0.4)" }}>
           <div className="modal-dialog modal-lg">
             <div className="modal-content">
               <div
@@ -467,9 +439,9 @@ const StudyList = () => {
                         e.preventDefault();
                         const tag = e.target.value.trim();
                         if (tag && !formData.category.includes(tag)) {
-                          setFormData((p) => ({
-                            ...p,
-                            category: [...p.category, tag],
+                          setFormData((prev) => ({
+                            ...prev,
+                            category: [...prev.category, tag],
                           }));
                         }
                         e.target.value = "";
@@ -484,9 +456,11 @@ const StudyList = () => {
                         className="badge bg-info text-dark me-2"
                         style={{ cursor: "pointer" }}
                         onClick={() =>
-                          setFormData((p) => ({
-                            ...p,
-                            category: p.category.filter((t) => t !== tag),
+                          setFormData((prev) => ({
+                            ...prev,
+                            category: prev.category.filter(
+                              (t) => t !== tag
+                            ),
                           }))
                         }
                       >
@@ -499,14 +473,14 @@ const StudyList = () => {
                   <div className="mt-3">
                     <h6>지도에서 위치 선택</h6>
                     <div
-                      id="createMap"
+                      ref={mapContainerRef}
                       style={{
                         width: "100%",
                         height: "300px",
                         borderRadius: "10px",
                         border: "1px solid #ccc",
                       }}
-                    />
+                    ></div>
                   </div>
 
                   {formData.latitude && (
@@ -522,17 +496,18 @@ const StudyList = () => {
                     style={{ backgroundColor: "#797979ff", color: "#fff" }}
                     onClick={() => setShowForm(false)}
                   >
-                    <strong>취소</strong>
+                    취소
                   </button>
                   <button
                     className="btn btn-sm"
                     type="submit"
                     style={{ backgroundColor: "#f88888ff", color: "#fff" }}
                   >
-                    <strong>생성</strong>
+                    생성
                   </button>
                 </div>
               </form>
+
             </div>
           </div>
         </div>

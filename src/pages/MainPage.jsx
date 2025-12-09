@@ -32,33 +32,39 @@ const sidebarStyles = {
 const MainPage = () => {
   const location = useLocation();
 
+    // 사용자 정보
   const [userId, setUserId] = useState(null);
   const [username, setUsername] = useState("");
 
+  // 리더 여부
   const [isLeader, setIsLeader] = useState(false);
   const [leaderGroups, setLeaderGroups] = useState([]);
 
+  // 일정
   const [schedules, setSchedules] = useState([]);
   const [selectedDate, setSelectedDate] = useState(new Date());
 
-  // 지도 상태
-  const mapRef = useRef(null);
-  const googleMap = useRef(null);
-  const markersRef = useRef([]);
+  // 지도
+  const mapContainerRef = useRef(null);       // 지도 DOM
+  const googleMapRef = useRef(null);          // 지도 객체
+  const markerRefs = useRef([]);              // 지도 마커들
 
+  // 현재 사용자 위치
   const [userLocation, setUserLocation] = useState(null);
 
+  // 일정 생성/상세 모달
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [createMode, setCreateMode] = useState(null);
-
-  const [openAttendanceModal, setOpenAttendanceModal] = useState(null);
+  const [editScheduleData, setEditScheduleData] = useState(null);
+  const [modalMode, setModalMode] = useState("create");
 
   const [openDetailModal, setOpenDetailModal] = useState(false);
   const [detailScheduleId, setDetailScheduleId] = useState(null);
 
-  const [editScheduleData, setEditScheduleData] = useState(null);
-  const [modalMode, setModalMode] = useState("create");
+  // 출석 모달
+  const [openAttendanceModal, setOpenAttendanceModal] = useState(null);
 
+  // 알림
   const [notifications, setNotifications] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -151,85 +157,79 @@ const MainPage = () => {
     checkLeader();
   }, [userId]);
 
-  // =============================
-  // Google Maps 초기화
-  // =============================
+  // -----------------------------------
+  // 사용자 GPS 가져오기
+  // -----------------------------------
   useEffect(() => {
-    if (!window.google || !window.google.maps) return;
-
-    const mapContainer = document.getElementById("map");
-    if (!mapContainer) return;
-
-    googleMap.current = new window.google.maps.Map(mapContainer, {
-      center: { lat: 37.5665, lng: 126.9780 },
-      zoom: 13,
-    });
-  }, [location.pathname]);
-
-  // =============================
-  // Google Map Marker 처리
-  // =============================
-  useEffect(() => {
-    if (!googleMap.current) return;
-
-    // 기존 마커 제거
-    markersRef.current.forEach((m) => m.setMap(null));
-    markersRef.current = [];
-
-    // 내 위치 마커
-    if (userLocation) {
-      const myMarker = new window.google.maps.Marker({
-        position: { lat: userLocation.lat, lng: userLocation.lng },
-        map: googleMap.current,
-      });
-
-      googleMap.current.setCenter({
-        lat: userLocation.lat,
-        lng: userLocation.lng,
-      });
-
-      markersRef.current.push(myMarker);
-    }
-
-    // 스터디 마커
-    schedules.forEach((s) => {
-      if (!s.lat || !s.lng) return;
-
-      const marker = new window.google.maps.Marker({
-        position: { lat: s.lat, lng: s.lng },
-        map: googleMap.current,
-      });
-
-      const info = new window.google.maps.InfoWindow({
-        content: `<div style="font-size:14px;">${s.groupTitle}</div>`,
-      });
-
-      marker.addListener("click", () => {
-        info.open({
-          anchor: marker,
-          map: googleMap.current,
-        });
-      });
-
-      markersRef.current.push(marker);
-    });
-  }, [userLocation, schedules]);
-
-  // =============================
-  // 사용자 위치 가져오기
-  // =============================
-  useEffect(() => {
-    if (!location.pathname.startsWith("/main")) return;
-
     navigator.geolocation.getCurrentPosition(
       (pos) =>
         setUserLocation({
           lat: pos.coords.latitude,
           lng: pos.coords.longitude,
         }),
-      (err) => console.error("위치 실패:", err)
+      (err) => console.error("GPS 실패:", err)
     );
-  }, [location.pathname]);
+  }, []);
+
+  // -----------------------------------
+  // Google 지도 초기화 (한 번만!)
+  // -----------------------------------
+  useEffect(() => {
+    if (googleMapRef.current) return;                       // 이미 생성됨
+    if (!window.google || !window.google.maps) return;
+
+    const container = mapContainerRef.current;
+    if (!container) return;
+
+    googleMapRef.current = new window.google.maps.Map(container, {
+      center: { lat: 37.5665, lng: 126.9780 },
+      zoom: 13,
+    });
+  }, []);
+
+  // -----------------------------------
+  // 마커 갱신 (schedules 변경 시만)
+  // -----------------------------------
+  useEffect(() => {
+    if (!googleMapRef.current) return;
+
+    // 기존 마커 제거
+    markerRefs.current.forEach((m) => m.setMap(null));
+    markerRefs.current = [];
+
+    // 내 위치 마커
+    if (userLocation) {
+      const myMarker = new window.google.maps.Marker({
+        position: userLocation,
+        map: googleMapRef.current,
+        icon: "https://maps.google.com/mapfiles/ms/icons/blue-dot.png",
+      });
+
+      markerRefs.current.push(myMarker);
+      googleMapRef.current.setCenter(userLocation);
+    }
+
+    // 스터디 일정 마커
+    schedules.forEach((s) => {
+      if (!s.lat || !s.lng) return;
+
+      const marker = new window.google.maps.Marker({
+        position: { lat: s.lat, lng: s.lng },
+        map: googleMapRef.current,
+        icon: "https://maps.google.com/mapfiles/ms/icons/red-dot.png",
+      });
+
+      const infowindow = new window.google.maps.InfoWindow({
+        content: `<div style="padding:5px;">${s.groupTitle}</div>`,
+      });
+
+      marker.addListener("click", () =>
+        infowindow.open(googleMapRef.current, marker)
+      );
+
+      markerRefs.current.push(marker);
+    });
+  }, [userLocation, schedules]);
 
   // =============================
   // 날짜 하이라이트
@@ -466,7 +466,7 @@ const MainPage = () => {
 
                       <div className="col-md-6 d-flex align-items-stretch">
                         <div
-                          id="map"
+                          ref={mapContainerRef}   // ← 여기! id 제거됨, ref 연결됨
                           style={{
                             width: "100%",
                             height: "400px",

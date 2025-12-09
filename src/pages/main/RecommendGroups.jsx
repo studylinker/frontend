@@ -15,13 +15,15 @@ const RecommendGroups = () => {
 
   const [userId, setUserId] = useState(null);
 
-  const mapRef = useRef(null);
-  const googleMap = useRef(null);
-  const markersRef = useRef([]);
+  // Google Maps
+  const mapContainerRef = useRef(null);     // 지도 DOM
+  const googleMapRef = useRef(null);        // 지도 객체
+  const markersRef = useRef([]);            // 마커 리스트
 
-  // ======================================
+
+  // ======================================================
   // 0) 로그인 사용자 정보 가져오기
-  // ======================================
+  // ======================================================
   useEffect(() => {
     const loadUserInfo = async () => {
       try {
@@ -31,12 +33,14 @@ const RecommendGroups = () => {
         console.error("유저 정보 불러오기 실패:", err);
       }
     };
+
     loadUserInfo();
   }, []);
 
-  // ======================================
+
+  // ======================================================
   // 1) 사용자 GPS 가져오기
-  // ======================================
+  // ======================================================
   useEffect(() => {
     navigator.geolocation.getCurrentPosition(
       (pos) =>
@@ -48,14 +52,15 @@ const RecommendGroups = () => {
     );
   }, []);
 
-  // ======================================
+
+  // ======================================================
   // 2) 추천 API 호출
-  // ======================================
+  // ======================================================
   const loadRecommendations = async () => {
     if (!userLocation || !userId) return;
 
     try {
-      let url =
+      const url =
         algorithm === "locationNLP"
           ? "/recommend/tag"
           : "/recommend/popular";
@@ -72,6 +77,7 @@ const RecommendGroups = () => {
 
       const rawGroups = res.data.groups || [];
 
+      // 상세 정보까지 합쳐서 enrich
       const enriched = await Promise.all(
         rawGroups.map(async (g) => {
           const id = g.studyGroupId ?? g.groupId;
@@ -95,7 +101,7 @@ const RecommendGroups = () => {
 
       setGroups(enriched);
     } catch (err) {
-      console.error("추천 불러오기 실패", err);
+      console.error("추천 불러오기 실패:", err);
     }
   };
 
@@ -103,13 +109,14 @@ const RecommendGroups = () => {
     loadRecommendations();
   }, [userLocation, radius, algorithm, userId]);
 
-  // ======================================
+
+  // ======================================================
   // 3) 참여 신청
-  // ======================================
+  // ======================================================
   const handleJoin = async (groupId) => {
     try {
       await api.post(`/study-groups/${groupId}/members`);
-      alert("참여 신청 완료");
+      alert("참여 신청 완료!");
       loadRecommendations();
     } catch (err) {
       alert("참여 신청 실패");
@@ -117,59 +124,71 @@ const RecommendGroups = () => {
     }
   };
 
-  // ======================================
-  // 4) Google Maps 마커 표시
-  // ======================================
-  useEffect(() => {
-    if (!window.google || groups.length === 0) return;
 
-    const container = document.getElementById("recommend-map");
+  // ======================================================
+  // 4) Google Maps 초기화 (단 1회 실행)
+  // ======================================================
+  useEffect(() => {
+    if (googleMapRef.current) return;                 // 이미 생성됨
+    if (!window.google || !window.google.maps) return;
+
+    const container = mapContainerRef.current;
     if (!container) return;
 
-    container.innerHTML = "";
+    googleMapRef.current = new window.google.maps.Map(container, {
+      center: { lat: 37.5665, lng: 126.9780 },       // 기본 서울 중심
+      zoom: 13,
+    });
+  }, []);
+
+
+  // ======================================================
+  // 5) 마커 갱신 (groups 또는 radius 변경 시)
+  // ======================================================
+  useEffect(() => {
+    if (!googleMapRef.current) return;
+
+    // 기존 마커 전체 제거
+    markersRef.current.forEach((m) => m.setMap(null));
+    markersRef.current = [];
+
+    if (groups.length === 0) return;
 
     const first = groups[0];
     const lat = first.lat || first.latitude;
     const lng = first.lng || first.longitude;
 
-    if (!lat || !lng) return;
+    if (lat && lng) {
+      const zoom = radius === 2 ? 14 : radius === 5 ? 13 : 12;
+      googleMapRef.current.setCenter({ lat, lng });
+      googleMapRef.current.setZoom(zoom);
+    }
 
-    const zoomByRadius = radius === 2 ? 14 : radius === 5 ? 13 : 12;
-
-    googleMap.current = new window.google.maps.Map(container, {
-      center: { lat, lng },
-      zoom: zoomByRadius,
-    });
-
-    markersRef.current.forEach((m) => m.setMap(null));
-    markersRef.current = [];
-
+    // 추천 스터디 마커 출력
     groups.forEach((g) => {
       const glat = g.lat || g.latitude;
       const glng = g.lng || g.longitude;
+
       if (!glat || !glng) return;
 
       const marker = new window.google.maps.Marker({
         position: { lat: glat, lng: glng },
-        map: googleMap.current,
-        icon: {
-          url: "https://maps.google.com/mapfiles/ms/icons/red-dot.png",
-        },
+        map: googleMapRef.current,
+        icon: "https://maps.google.com/mapfiles/ms/icons/red-dot.png",
       });
 
       markersRef.current.push(marker);
     });
   }, [groups, radius]);
 
-  // ======================================
-  // 5) 상세보기 모달 → 주소 변환
-  // ======================================
+
+  // ======================================================
+  // 6) 상세 모달 주소 변환 (Google Geocoder)
+  // ======================================================
   useEffect(() => {
-    if (!selectedGroup) return;
-    if (!window.google?.maps) return;
+    if (!selectedGroup || !window.google?.maps) return;
 
     const geocoder = new window.google.maps.Geocoder();
-
     const lat = selectedGroup.lat || selectedGroup.latitude;
     const lng = selectedGroup.lng || selectedGroup.longitude;
 
@@ -185,9 +204,10 @@ const RecommendGroups = () => {
     );
   }, [selectedGroup]);
 
-  // ======================================
+
+  // ======================================================
   // UI
-  // ======================================
+  // ======================================================
   return (
     <div>
       <h2><strong>스터디 추천</strong></h2>
@@ -206,7 +226,7 @@ const RecommendGroups = () => {
         </select>
       </div>
 
-      {/* 반경 */}
+      {/* 반경 선택 */}
       <div className="mb-3">
         <label className="form-label fw-bold me-2">반경:</label>
         <select
@@ -214,15 +234,15 @@ const RecommendGroups = () => {
           onChange={(e) => setRadius(Number(e.target.value))}
           className="form-select d-inline-block w-auto"
         >
-          <option value={2}>2 km</option>
-          <option value={5}>5 km</option>
-          <option value={10}>10 km</option>
+          <option value={2}>2km</option>
+          <option value={5}>5km</option>
+          <option value={10}>10km</option>
         </select>
       </div>
 
       {/* 지도 */}
       <div
-        id="recommend-map"
+        ref={mapContainerRef}     // ← Google Maps는 반드시 ref 사용
         style={{
           width: "100%",
           height: "400px",
@@ -232,19 +252,18 @@ const RecommendGroups = () => {
         }}
       ></div>
 
-      {/* 리스트 */}
+      {/* 추천 리스트 */}
       <div className="row">
         {groups.map((g) => {
           const id = g.studyGroupId ?? g.groupId;
           const name = g.name ?? g.title;
-          const description = g.description ?? "-";
 
           return (
             <div key={id} className="col-md-6 mb-3">
               <div className="card shadow-sm">
                 <div className="card-body">
                   <h5><strong>{name}</strong></h5>
-                  <p>{description}</p>
+                  <p>{g.description ?? "-"}</p>
 
                   {Array.isArray(g.category) && (
                     <p>
@@ -265,7 +284,6 @@ const RecommendGroups = () => {
                     }}
                   >
                     상세보기
-                    <span className="icon-box"><i className="bi bi-arrow-right"></i></span>
                   </button>
 
                   <button
@@ -273,7 +291,6 @@ const RecommendGroups = () => {
                     onClick={() => handleJoin(id)}
                   >
                     참여 신청
-                    <span className="icon-box"><i className="bi bi-check2-circle"></i></span>
                   </button>
                 </div>
               </div>
@@ -284,7 +301,7 @@ const RecommendGroups = () => {
         {groups.length === 0 && <p>추천된 스터디가 없습니다.</p>}
       </div>
 
-      {/* 상세 모달 */}
+      {/* 상세 보기 모달 */}
       {showModal && selectedGroup && (
         <div className="modal d-block" style={{ background: "rgba(0,0,0,0.4)" }}>
           <div className="modal-dialog">
@@ -292,19 +309,16 @@ const RecommendGroups = () => {
 
               <div className="modal-header" style={{ backgroundColor: "#bfb9b9", color: "#fff" }}>
                 <h5><strong>{selectedGroup.name ?? selectedGroup.title}</strong></h5>
-                <button className="btn-close btn-close-white" onClick={() => setShowModal(false)}></button>
+                <button
+                  className="btn-close btn-close-white"
+                  onClick={() => setShowModal(false)}
+                ></button>
               </div>
 
               <div className="modal-body">
                 <p><strong>설명:</strong> {selectedGroup.description ?? "-"}</p>
-
-                <p>
-                  <strong>주소:</strong> {selectedAddress || "주소 변환 중..."}
-                </p>
-
-                <p>
-                  <strong>추천 점수:</strong> ⭐ {selectedGroup.finalScore?.toFixed(2) ?? "-"}
-                </p>
+                <p><strong>주소:</strong> {selectedAddress || "주소 변환 중..."}</p>
+                <p><strong>추천 점수:</strong> ⭐ {selectedGroup.finalScore?.toFixed(2) ?? "-"}</p>
               </div>
 
               <div className="modal-footer">
@@ -317,6 +331,7 @@ const RecommendGroups = () => {
           </div>
         </div>
       )}
+
     </div>
   );
 };
