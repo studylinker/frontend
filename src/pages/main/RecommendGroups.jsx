@@ -37,6 +37,19 @@ const RecommendGroups = () => {
     return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   }
 
+  // 상태를 한국어 + 색상으로 변환하는 함수
+  const getStatusDisplay = (status) => {
+    if (!status) return { text: "알 수 없음", color: "gray" };
+
+    const normalized = status.toUpperCase();
+
+    if (normalized === "ACTIVE" || normalized === "RECRUITING") {
+      return { text: "활동중", color: "green" };
+    }
+
+    return { text: "비활성화", color: "red" };
+  };
+
   // ======================================================
   // 0) 로그인 사용자 정보 가져오기
   // ======================================================
@@ -107,14 +120,10 @@ const RecommendGroups = () => {
                 typeof detail.data.category === "string"
                   ? JSON.parse(detail.data.category)
                   : detail.data.category,
-              leaderName: detail.data.leaderName ?? "알 수 없음",
               finalScore: g.finalScore ?? g.score ?? null,
             };
           } catch {
-            return {
-              ...g,
-              leaderName: "알 수 없음",
-            }
+            return g
           }
         })
       );
@@ -312,7 +321,6 @@ const RecommendGroups = () => {
               <div className="card shadow-sm">
                 <div className="card-body">
                   <h5><strong>{name}</strong></h5>
-                  <p>{g.description ?? "-"}</p>
                   <p><strong>거리:</strong> {g.distanceKm ? g.distanceKm.toFixed(1) : "-"} km</p>
                   <p><strong>추천 점수:</strong> ⭐ {g.finalScore ? g.finalScore.toFixed(2) : "-"}</p>
                   {Array.isArray(g.category) && (
@@ -356,18 +364,63 @@ const RecommendGroups = () => {
 
               <div className="modal-header" style={{ backgroundColor: "#bfb9b9", color: "#fff" }}>
                 <h5><strong>{selectedGroup.name ?? selectedGroup.title}</strong></h5>
-                <button
-                  className="btn-close btn-close-white"
-                  onClick={() => setShowModal(false)}
-                ></button>
+                <button className="btn-close btn-close-white" onClick={() => setShowModal(false)}></button>
               </div>
 
               <div className="modal-body">
                 <p><strong>설명:</strong> {selectedGroup.description ?? "-"}</p>
-                <p><strong>리더:</strong> {selectedGroup.leaderName ?? "알 수 없음"}</p>
+                <p><strong>최대 인원:</strong> {selectedGroup.maxMembers ?? "-"}명</p>
+                <p><strong>생성일:</strong> 
+                  {selectedGroup.createdAt 
+                    ? String(selectedGroup.createdAt).slice(0, 10)
+                    : "-"}
+                </p>
                 <p><strong>주소:</strong> {selectedAddress || "주소 변환 중..."}</p>
-                <p><strong>거리:</strong> {selectedGroup.distanceKm ? selectedGroup.distanceKm.toFixed(1) : "-"} km</p>
-                <p><strong>추천 점수:</strong> ⭐ {selectedGroup.finalScore?.toFixed(2) ?? "-"}</p>
+                <p>
+                  <strong>거리:</strong> 
+                  {selectedGroup.distance 
+                    ? `${selectedGroup.distance.toFixed(1)} km`
+                    : "-"}
+                </p>
+                {/* 상태 */}
+                {selectedGroup.status && (
+                  <p>
+                    <strong>상태: </strong>
+                    <span
+                      style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}
+                    >
+                    <span
+                      style={{width: "10px", height: "10px", borderRadius: "50%", backgroundColor: getStatusDisplay(selectedGroup.status).color}}
+                      ></span>
+                      {getStatusDisplay(selectedGroup.status).text}
+                    </span>
+                  </p>
+                )}
+
+                <p>
+                  <strong>추천 점수:</strong> ⭐ 
+                  {selectedGroup.finalScore?.toFixed(2) ?? "-"}
+                </p>
+                {Array.isArray(selectedGroup.category) && (
+                  <div className="mt-2">
+                    <strong>카테고리:</strong><br/>
+                    {selectedGroup.category.map((tag, idx) => (
+                      <span
+                        key={idx}
+                        className="badge me-2"
+                        style={{
+                          backgroundColor: "#bfb9b9",
+                          color: "#fff",
+                          fontSize: "0.9rem",
+                          padding: "6px 10px",
+                          borderRadius: "6px",
+                        }}
+                      >
+                        #{tag}
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
 
               <div className="modal-footer">
@@ -380,6 +433,7 @@ const RecommendGroups = () => {
           </div>
         </div>
       )}
+
     </div>
   );
 };
