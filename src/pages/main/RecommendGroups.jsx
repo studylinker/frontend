@@ -22,6 +22,21 @@ const RecommendGroups = () => {
   const markersRef = useRef([]);            // 마커 리스트
   const location = useLocation();
 
+  // 거리 계산 함수 
+  function getDistance(lat1, lng1, lat2, lng2) {
+    const R = 6371; // km
+    const dLat = (lat2 - lat1) * (Math.PI / 180);
+    const dLng = (lng2 - lng1) * (Math.PI / 180);
+
+    const a =
+      Math.sin(dLat / 2) ** 2 +
+      Math.cos(lat1 * (Math.PI / 180)) *
+        Math.cos(lat2 * (Math.PI / 180)) *
+        Math.sin(dLng / 2) ** 2;
+
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  }
+
   // ======================================================
   // 0) 로그인 사용자 정보 가져오기
   // ======================================================
@@ -78,7 +93,6 @@ const RecommendGroups = () => {
 
       const rawGroups = res.data.groups || [];
 
-      // 상세 정보까지 합쳐서 enrich
       const enriched = await Promise.all(
         rawGroups.map(async (g) => {
           const id = g.studyGroupId ?? g.groupId;
@@ -99,6 +113,19 @@ const RecommendGroups = () => {
           }
         })
       );
+
+      // enrich 후 사용자 위치 기준 거리 계산
+      const withDistance = enriched.map((g) => {
+        const lat = g.lat || g.latitude;
+        const lng = g.lng || g.longitude;
+        if (!lat || !lng || !userLocation) return { ...g, distanceKm: null };
+
+        return {
+          ...g,
+          distanceKm: getDistance(userLocation.lat, userLocation.lng, lat, lng),
+        };
+      });
+      setGroups(withDistance);
 
       setGroups(enriched);
     } catch (err) {
@@ -147,7 +174,7 @@ const RecommendGroups = () => {
       zoom: 13,
     });
 
-    console.log("✅ RecommendGroups Google Map CREATED");
+    console.log("RecommendGroups Google Map CREATED");
 
     // ★ cleanup → 페이지 벗어날 때 지도 제거
     return () => {
@@ -286,12 +313,12 @@ const RecommendGroups = () => {
                     <p>
                       <strong>카테고리: </strong>
                       {g.category.map((tag, idx) => (
-                        <span key={idx} className="badge bg-secondary me-1">
-                          #{tag}
-                        </span>
+                        <span key={idx} className="badge bg-secondary me-1">#{tag}</span>
                       ))}
                     </p>
                   )}
+
+                  <p><strong>거리:</strong> {g.distanceKm ? g.distanceKm.toFixed(1) : "-"} km</p>
 
                   <button
                     className="study-btn study-btn-detail me-2"
@@ -335,6 +362,7 @@ const RecommendGroups = () => {
               <div className="modal-body">
                 <p><strong>설명:</strong> {selectedGroup.description ?? "-"}</p>
                 <p><strong>주소:</strong> {selectedAddress || "주소 변환 중..."}</p>
+                <p><strong>거리:</strong> {selectedGroup.distanceKm ? selectedGroup.distanceKm.toFixed(1) : "-"} km</p>
                 <p><strong>추천 점수:</strong> ⭐ {selectedGroup.finalScore?.toFixed(2) ?? "-"}</p>
               </div>
 
@@ -348,7 +376,6 @@ const RecommendGroups = () => {
           </div>
         </div>
       )}
-
     </div>
   );
 };
