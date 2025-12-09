@@ -17,9 +17,9 @@ const RecommendGroups = () => {
   const [userId, setUserId] = useState(null);
 
   // Google Maps
-  const mapContainerRef = useRef(null);     // 지도 DOM
-  const googleMapRef = useRef(null);        // 지도 객체
-  const markersRef = useRef([]);            // 마커 리스트
+  const mapContainerRef = useRef(null); 
+  const googleMapRef = useRef(null);
+  const markersRef = useRef([]);  
   const location = useLocation();
 
   // 거리 계산 함수 
@@ -37,16 +37,12 @@ const RecommendGroups = () => {
     return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   }
 
-  // 상태를 한국어 + 색상으로 변환하는 함수
+  // 상태 색상/텍스트 표시
   const getStatusDisplay = (status) => {
     if (!status) return { text: "알 수 없음", color: "gray" };
 
-    const normalized = status.toUpperCase();
-
-    if (normalized === "ACTIVE" || normalized === "RECRUITING") {
-      return { text: "활동중", color: "green" };
-    }
-
+    const st = status.toUpperCase();
+    if (st === "ACTIVE" || st === "RECRUITING") return { text: "활동중", color: "green" };
     return { text: "비활성화", color: "red" };
   };
 
@@ -90,9 +86,7 @@ const RecommendGroups = () => {
 
     try {
       const url =
-        algorithm === "locationNLP"
-          ? "/recommend/tag"
-          : "/recommend/popular";
+        algorithm === "locationNLP" ? "/recommend/tag" : "/recommend/popular";
 
       const res = await api.get(url, {
         params: {
@@ -106,29 +100,37 @@ const RecommendGroups = () => {
 
       const rawGroups = res.data.groups || [];
 
+      // 상세 정보 병합
       const enriched = await Promise.all(
         rawGroups.map(async (g) => {
           const id = g.studyGroupId ?? g.groupId;
           if (!id) return g;
 
           try {
-            const detail = await api.get(`/study-groups/${id}`);
+            const detailRes = await api.get(`/study-groups/${id}`);
+            const detail = detailRes.data;  // StudyGroupResponse DTO
+
             return {
               ...g,
-              description: detail.data.description,
-              category:
-                typeof detail.data.category === "string"
-                  ? JSON.parse(detail.data.category)
-                  : detail.data.category,
-              finalScore: g.finalScore ?? g.score ?? null,
+              title: detail.title,
+              description: detail.description,
+              maxMembers: detail.maxMembers,
+              createdAt: detail.createdAt,
+              status: detail.status,
+              category: detail.category
+                ? JSON.parse(detail.category)
+                : g.category,
+              latitude: detail.latitude,
+              longitude: detail.longitude,
+              finalScore: g.finalScore ?? g.score ?? 0,
             };
           } catch {
-            return g
+            return g;
           }
         })
       );
 
-      // enrich 후 사용자 위치 기준 거리 계산
+      // 사용자 위치 기준 거리 계산
       const withDistance = enriched.map((g) => {
         const lat = g.lat || g.latitude;
         const lng = g.lng || g.longitude;
@@ -170,19 +172,13 @@ const RecommendGroups = () => {
   // 4) Google Maps 초기화 — 페이지(/main/recommend) 들어올 때만 실행되도록 변경
   // ======================================================
   useEffect(() => {
-
-    // ★ 이미 map 객체가 있다면 재생성 방지
     if (googleMapRef.current) return;
-
-    // ★ 현재 페이지가 추천 페이지가 아니면 지도 생성 X
-    if (location.pathname !== "/main/recommend") return;  // ★ 수정된 부분
-
+    if (location.pathname !== "/main/recommend") return;
     if (!window.google || !window.google.maps) return;
 
     const container = mapContainerRef.current;
     if (!container) return;
 
-    // ⭐ 지도 생성 (페이지 진입 시 1회)
     googleMapRef.current = new window.google.maps.Map(container, {
       center: { lat: 37.5665, lng: 126.9780 },
       zoom: 13,
@@ -190,13 +186,13 @@ const RecommendGroups = () => {
 
     console.log("RecommendGroups Google Map CREATED");
 
-    // ★ cleanup → 페이지 벗어날 때 지도 제거
+    // cleanup → 페이지 벗어날 때 지도 제거
     return () => {
-      console.log("🧹 RecommendGroups Google Map DESTROYED");
-      googleMapRef.current = null;   // 핵심!
+      console.log("RecommendGroups Google Map DESTROYED");
+      googleMapRef.current = null;
     };
 
-  }, [location.pathname]);  // ★ 페이지 이동 시 감지되도록 수정된 의존성
+  }, [location.pathname]);  // 페이지 이동 시 감지되도록 수정된 의존성
 
 
 
@@ -322,7 +318,7 @@ const RecommendGroups = () => {
                 <div className="card-body">
                   <h5><strong>{name}</strong></h5>
                   <p><strong>거리:</strong> {g.distanceKm ? g.distanceKm.toFixed(1) : "-"} km</p>
-                  <p><strong>추천 점수:</strong> ⭐ {g.finalScore ? g.finalScore.toFixed(2) : "-"}</p>
+                  <p><strong>추천 점수:</strong> ⭐ {(g.finalScore * 100).toFixed(0)}점</p>
                   {Array.isArray(g.category) && (
                     <p>
                       <strong>카테고리: </strong>
@@ -334,7 +330,11 @@ const RecommendGroups = () => {
                   <button
                     className="study-btn study-btn-detail me-2"
                     onClick={() => {
-                      setSelectedGroup(g);
+                      // 상세모달이 필요한 데이터 모아서 세팅
+                      setSelectedGroup({
+                        ...g,                      // 추천 데이터 기반
+                        distance: g.distanceKm,    // 상세모달 거리
+                      });
                       setShowModal(true);
                     }}
                   >
@@ -370,54 +370,34 @@ const RecommendGroups = () => {
               <div className="modal-body">
                 <p><strong>설명:</strong> {selectedGroup.description ?? "-"}</p>
                 <p><strong>최대 인원:</strong> {selectedGroup.maxMembers ?? "-"}명</p>
-                <p><strong>생성일:</strong> 
+                <p><strong>생성일:</strong>{" "}
                   {selectedGroup.createdAt 
                     ? String(selectedGroup.createdAt).slice(0, 10)
                     : "-"}
                 </p>
                 <p><strong>주소:</strong> {selectedAddress || "주소 변환 중..."}</p>
                 <p>
-                  <strong>거리:</strong> 
+                  <strong>거리:</strong>{" "}
                   {selectedGroup.distance 
                     ? `${selectedGroup.distance.toFixed(1)} km`
                     : "-"}
                 </p>
-                {/* 상태 */}
                 {selectedGroup.status && (
                   <p>
-                    <strong>상태: </strong>
-                    <span
-                      style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}
-                    >
-                    <span
-                      style={{width: "10px", height: "10px", borderRadius: "50%", backgroundColor: getStatusDisplay(selectedGroup.status).color}}
-                      ></span>
+                    <strong>상태: </strong>{" "}
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+                    <span style={{width: "10px", height: "10px", borderRadius: "50%", backgroundColor: getStatusDisplay(selectedGroup.status).color,}}></span>
                       {getStatusDisplay(selectedGroup.status).text}
                     </span>
                   </p>
                 )}
 
-                <p>
-                  <strong>추천 점수:</strong> ⭐ 
-                  {selectedGroup.finalScore?.toFixed(2) ?? "-"}
-                </p>
+                <p><strong>추천 점수:</strong> ⭐ {(selectedGroup.finalScore * 100).toFixed(0)}점</p>
                 {Array.isArray(selectedGroup.category) && (
                   <div className="mt-2">
-                    <strong>카테고리:</strong><br/>
+                    <strong>카테고리:</strong>
                     {selectedGroup.category.map((tag, idx) => (
-                      <span
-                        key={idx}
-                        className="badge me-2"
-                        style={{
-                          backgroundColor: "#bfb9b9",
-                          color: "#fff",
-                          fontSize: "0.9rem",
-                          padding: "6px 10px",
-                          borderRadius: "6px",
-                        }}
-                      >
-                        #{tag}
-                      </span>
+                      <span key={idx} className="badge bg-secondary me-1">#{tag}</span>
                     ))}
                   </div>
                 )}
