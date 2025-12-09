@@ -32,7 +32,7 @@ const MemberRatioChart = ({ labels, data }) => {
                 responsive: true,
                 maintainAspectRatio: false,
                 plugins: {
-                    title: { display: true, text: '스터디 참여 인원 비율' }
+                    title: { display: true, text: '사용자 별 카테고리' }
                 }
             }
         });
