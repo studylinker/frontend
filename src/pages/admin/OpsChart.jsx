@@ -54,9 +54,24 @@ const OpsChart = () => {
     }, []);
 
     const handleConfirmExport = () => {
-        setIsExportModalOpen(false);
-        alert("📁 CSV 다운로드를 시작합니다!");
-    };
+    setIsExportModalOpen(false);
+
+    api.get("/stats/export", { responseType: "blob" })
+        .then((res) => {
+            const url = window.URL.createObjectURL(new Blob([res.data]));
+            const link = document.createElement("a");
+            link.href = url;
+            link.setAttribute("download", "stats.csv");
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+        })
+        .catch((err) => {
+            console.error("CSV 다운로드 실패:", err);
+            alert("CSV 다운로드 실패");
+        });
+};
+
 
     return (
         <div>
