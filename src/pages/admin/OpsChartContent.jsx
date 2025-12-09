@@ -95,7 +95,7 @@ const OpsChartContent = () => {
           <div className="card shadow-sm border-0">
             <div className="card-header bg-success text-white d-flex align-items-center">
               <FaUsers size={20} className="me-2" />
-              <span className="fw-semibold">카테고리 비율 분석</span>
+              <span className="fw-semibold">사용자 별 카테고리 분석</span>
             </div>
             <div className="card-body">
               <MemberRatioChart labels={memberRatio.labels} data={memberRatio.data} />

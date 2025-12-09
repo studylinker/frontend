@@ -14,6 +14,7 @@ import StatsModal from "./StatsModal";
 const GroupList = () => {
   const navigate = useNavigate();
 
+  // ⭐ 기본 상태를 Active로 설정
   const [groups, setGroups] = useState([
     {
       groupId: 1,
@@ -22,7 +23,7 @@ const GroupList = () => {
       leaderId: 101,
       maxMembers: 3,
       max: 5,
-      status: "Active"
+      status: "ACTIVE",
     },
     {
       groupId: 2,
@@ -31,8 +32,8 @@ const GroupList = () => {
       leaderId: 102,
       maxMembers: 5,
       max: 5,
-      status: "Pending"
-    }
+      status: "ACTIVE",
+    },
   ]);
 
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -47,7 +48,12 @@ const GroupList = () => {
       .get("/study-groups")
       .then((res) => {
         if (Array.isArray(res.data) && res.data.length > 0) {
-          setGroups(res.data);
+          // ⭐ 백엔드 ENUM 그대로 사용하도록 변환
+          const normalized = res.data.map((g) => ({
+            ...g,
+            status: (g.status || "ACTIVE").toUpperCase(),
+          }));
+          setGroups(normalized);
         } else {
           console.warn("API 그룹 목록 없음 → 더미 유지");
         }
@@ -73,13 +79,14 @@ const GroupList = () => {
     setIsStatusModalOpen(true);
   };
 
+  // ⭐ 백엔드 ENUM에 맞게 전부 대문자로 전송 + 상태 업데이트
   const handleStatusChangeConfirm = (groupId, action) => {
     const newStatus =
       action === "Activate"
-        ? "Active"
+        ? "ACTIVE"
         : action === "Deactivate"
-        ? "Inactive"
-        : "Pending";
+        ? "INACTIVE"
+        : "PENDING";
 
     api.patch(`/study-groups/${groupId}`, { status: newStatus }).then(() => {
       setGroups(
@@ -91,17 +98,27 @@ const GroupList = () => {
     });
   };
 
+  // ⭐ 상태 뱃지(대문자 ENUM 기준)
   const getStatusBadge = (status) => {
-    if (status === "Active")
+    const s = (status || "").toUpperCase();
+
+    if (s === "ACTIVE")
       return <span className="badge bg-success">활성</span>;
-    if (status === "Inactive")
+
+    if (s === "INACTIVE")
       return <span className="badge bg-secondary">비활성</span>;
+
+    if (s === "REJECTED")
+      return <span className="badge bg-danger">거절됨</span>;
+
     return <span className="badge bg-warning text-dark">대기중</span>;
   };
 
-  // ⭐ 버튼 색상 사용자관리와 동일하게 수정 (회색 = btn-outline-secondary)
+  // ⭐ 버튼 활성화 조건 (대문자 ENUM 기준)
   const renderStatusButtons = (g) => {
-    if (g.status === "Pending") {
+    const s = (g.status || "").toUpperCase();
+
+    if (s === "PENDING") {
       return (
         <>
           <button
@@ -121,7 +138,7 @@ const GroupList = () => {
       );
     }
 
-    if (g.status === "Active") {
+    if (s === "ACTIVE") {
       return (
         <button
           className="btn btn-outline-secondary btn-sm me-2"
@@ -182,6 +199,7 @@ const GroupList = () => {
               <td>
                 {g.maxMembers}/{g.max}
               </td>
+
               <td>{getStatusBadge(g.status)}</td>
 
               <td>
