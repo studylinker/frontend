@@ -19,7 +19,7 @@ function getDistance(lat1, lng1, lat2, lng2) {
 
 const StudyList = () => {
   const [groups, setGroups] = useState([]);
-  const [joinedGroups, setJoinedGroups] = useState(new Set()); // 이미 가입/신청된 그룹
+  const [joinedGroups, setJoinedGroups] = useState(new Set());
   const [searchTerm, setSearchTerm] = useState("");
   const [userLocation, setUserLocation] = useState(null);
 
@@ -31,8 +31,9 @@ const StudyList = () => {
   const [selectedAddress, setSelectedAddress] = useState("");
   const [showModal, setShowModal] = useState(false);
 
-  // KakaoMap
+  // Google Map
   const mapRef = useRef(null);
+  const googleMap = useRef(null);
   const markerRef = useRef(null);
 
   // 생성 폼 데이터
@@ -55,7 +56,7 @@ const StudyList = () => {
   useEffect(() => {
     api
       .get("/users/profile")
-      .then((res) => setMyUserId(res.data.user_id))
+      .then((res) => setMyUserId(res.data.userId ?? res.data.user_id))
       .catch(() => {});
   }, []);
 
@@ -100,7 +101,7 @@ const StudyList = () => {
   }, []);
 
   // -------------------------------
-  // 이미 신청한 그룹 set 생성
+  // 이미 신청한 그룹 체크
   // -------------------------------
   useEffect(() => {
     if (!myUserId) return;
@@ -117,7 +118,7 @@ const StudyList = () => {
             newSet.add(g.groupId);
           }
         } catch (err) {
-          // 없는 경우 → 신청 안 한 그룹
+          // 가입 안 한 그룹은 무시
         }
       }
 
@@ -128,42 +129,43 @@ const StudyList = () => {
   }, [myUserId, groups]);
 
   // -------------------------------
-  // 생성 모달 지도
+  // Google Maps 생성 (스터디 생성 모달)
   // -------------------------------
   useEffect(() => {
-    if (showForm && window.kakao?.maps) {
-      const container = document.getElementById("createMap");
-      if (!container) return;
+    if (!showForm) return;
+    if (!window.google || !window.google.maps) return;
 
-      const map = new window.kakao.maps.Map(container, {
-        center: new window.kakao.maps.LatLng(
-          userLocation?.lat || 37.45,
-          userLocation?.lng || 127.12
-        ),
-        level: 4,
-      });
+    const container = document.getElementById("createMap");
+    if (!container) return;
 
-      mapRef.current = map;
+    googleMap.current = new window.google.maps.Map(container, {
+      center: {
+        lat: userLocation?.lat || 37.45,
+        lng: userLocation?.lng || 127.12,
+      },
+      zoom: 15,
+    });
 
-      window.kakao.maps.event.addListener(map, "click", (mouseEvent) => {
-        const latlng = mouseEvent.latLng;
+    // 지도 클릭 시 마커 표시 + 좌표 저장
+    googleMap.current.addListener("click", (e) => {
+      const lat = e.latLng.lat();
+      const lng = e.latLng.lng();
 
-        if (!markerRef.current) {
-          markerRef.current = new window.kakao.maps.Marker({
-            position: latlng,
-            map,
-          });
-        } else {
-          markerRef.current.setPosition(latlng);
-        }
+      if (!markerRef.current) {
+        markerRef.current = new window.google.maps.Marker({
+          position: { lat, lng },
+          map: googleMap.current,
+        });
+      } else {
+        markerRef.current.setPosition({ lat, lng });
+      }
 
-        setFormData((prev) => ({
-          ...prev,
-          latitude: latlng.getLat(),
-          longitude: latlng.getLng(),
-        }));
-      });
-    }
+      setFormData((prev) => ({
+        ...prev,
+        latitude: lat,
+        longitude: lng,
+      }));
+    });
   }, [showForm, userLocation]);
 
   // -------------------------------
@@ -201,7 +203,7 @@ const StudyList = () => {
   const fetchGroupLeader = async (groupId) => {
     try {
       const res = await api.get(`/study-groups/${groupId}/leader`);
-      return res.data; // { memberId, groupId, userId, username, name, ... }
+      return res.data;
     } catch (err) {
       console.error("리더 조회 실패:", err);
       return null;
@@ -214,34 +216,23 @@ const StudyList = () => {
   const openDetailModal = async (group) => {
     const leader = await fetchGroupLeader(group.groupId);
 
-    // 리더 여부 판별 (내 userId === 이 그룹 리더 ID)
-    if (leader && leader.userId === myUserId) {
-      setIsLeader(true);
-    } else {
-      setIsLeader(false);
-    }
+    if (leader && leader.userId === myUserId) setIsLeader(true);
+    else setIsLeader(false);
 
     setSelectedGroup({
       ...group,
-      group_id: group.groupId, // DetailModal에서 group.group_id 쓰므로 맞춰줌
+      group_id: group.groupId,
       leaderName: leader?.name || "정보 없음",
     });
 
-    if (window.kakao?.maps) {
-      const geocoder = new window.kakao.maps.services.Geocoder();
-      const coord = new window.kakao.maps.LatLng(
-        group.latitude,
-        group.longitude
-      );
-
-      geocoder.coord2Address(
-        coord.getLng(),
-        coord.getLat(),
-        (result, status) => {
-          if (status === window.kakao.maps.services.Status.OK) {
-            const road = result[0].road_address?.address_name || "";
-            const jibun = result[0].address?.address_name || "";
-            setSelectedAddress(road || jibun);
+    // 구글 지도 reverse geocoding
+    if (window.google?.maps) {
+      const geocoder = new window.google.maps.Geocoder();
+      geocoder.geocode(
+        { location: { lat: group.latitude, lng: group.longitude } },
+        (results, status) => {
+          if (status === "OK" && results[0]) {
+            setSelectedAddress(results[0].formatted_address);
           }
         }
       );
@@ -257,15 +248,12 @@ const StudyList = () => {
     try {
       await api.post(`/study-groups/${groupId}/members`);
       alert("참여 신청 완료!");
-
       setJoinedGroups((prev) => new Set(prev).add(groupId));
     } catch (err) {
       const msg = err.response?.data || "신청 실패";
-
       if (msg.includes("이미 신청했거나 가입된")) {
         setJoinedGroups((prev) => new Set(prev).add(groupId));
       }
-
       alert(msg);
     }
   };
@@ -322,10 +310,8 @@ const StudyList = () => {
               <div className="card-body">
                 <h5><strong>{g.title}</strong></h5>
                 <p>{g.description}</p>
-
                 <p>
-                  거리:{" "}
-                  {g.distance ? `${g.distance.toFixed(1)} km` : "계산 불가"}
+                  거리: {g.distance ? `${g.distance.toFixed(1)} km` : "계산 불가"}
                 </p>
 
                 <button
@@ -344,7 +330,6 @@ const StudyList = () => {
                   onClick={() => handleJoin(g.groupId)}
                 >
                   {joinedGroups.has(g.groupId) ? "신청됨" : "참여 신청"}
-
                   <span className="icon-box">
                     <i className="bi bi-check2-circle"></i>
                   </span>
@@ -385,9 +370,9 @@ const StudyList = () => {
                   <p><strong>리더</strong> {selectedGroup.leaderName}</p>
                   <p><strong>설명</strong> {selectedGroup.description}</p>
                   <p><strong>주소</strong> {selectedAddress}</p>
+
                   <div className="mb-2">
                     <strong>카테고리</strong>
-                    
                     {selectedGroup.categoryList.map((tag, idx) => (
                       <span
                         key={idx}
@@ -417,7 +402,6 @@ const StudyList = () => {
           </div>
         )
       )}
-
 
       {/* 생성 모달 */}
       {showForm && (
@@ -472,7 +456,7 @@ const StudyList = () => {
                     }
                   />
 
-                  {/* 태그 입력 */}
+                  {/* 태그 */}
                   <label className="form-label">해시태그 추가</label>
                   <input
                     type="text"
@@ -536,13 +520,14 @@ const StudyList = () => {
                   <button
                     className="btn btn-sm"
                     style={{ backgroundColor: "#797979ff", color: "#fff" }}
+                    onClick={() => setShowForm(false)}
                   >
-                    <strong>취소</strong> 
+                    <strong>취소</strong>
                   </button>
                   <button
                     className="btn btn-sm"
-                    style={{ backgroundColor: "#f88888ff", color: "#fff" }}
                     type="submit"
+                    style={{ backgroundColor: "#f88888ff", color: "#fff" }}
                   >
                     <strong>생성</strong>
                   </button>

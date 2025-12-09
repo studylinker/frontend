@@ -7,7 +7,7 @@ import "react-calendar/dist/Calendar.css";
 import "./Mainpage.css";
 import api from "../api/axios";
 
-// 기존 네 프로젝트 파일들
+// 기존 컴포넌트들
 import StudyList from "./main/StudyList";
 import RecommendGroups from "./main/RecommendGroups";
 import UserBasicDashboard from "./main/UserBasicDashboard";
@@ -17,7 +17,6 @@ import MyPage from "./main/MyPage";
 import EditProfile from "./main/EditProfile";
 import BoardDetail from "./main/BoardDetail";
 
-// 모달들
 import ScheduleCreateModal from "../components/ScheduleCreateModal";
 import AttendanceModal from "../components/AttendanceModal";
 import ScheduleDetailModal from "../components/ScheduleDetailModal";
@@ -33,65 +32,47 @@ const sidebarStyles = {
 const MainPage = () => {
   const location = useLocation();
 
-  // 사용자 정보
   const [userId, setUserId] = useState(null);
   const [username, setUsername] = useState("");
 
-  // 리더 여부
   const [isLeader, setIsLeader] = useState(false);
-
-  // 리더인 그룹 목록 저장
   const [leaderGroups, setLeaderGroups] = useState([]);
 
-  // 일정
   const [schedules, setSchedules] = useState([]);
   const [selectedDate, setSelectedDate] = useState(new Date());
 
-  // 지도 관련
-  const [userLocation, setUserLocation] = useState(null);
+  // 지도 상태
   const mapRef = useRef(null);
+  const googleMap = useRef(null);
   const markersRef = useRef([]);
 
-  // 일정 등록 모달
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [createMode, setCreateMode] = useState(null);  
+  const [userLocation, setUserLocation] = useState(null);
 
-  // 출석 모달
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [createMode, setCreateMode] = useState(null);
+
   const [openAttendanceModal, setOpenAttendanceModal] = useState(null);
 
-  // 일정 상세 모달
   const [openDetailModal, setOpenDetailModal] = useState(false);
   const [detailScheduleId, setDetailScheduleId] = useState(null);
 
-  // 일정 수정 모달
   const [editScheduleData, setEditScheduleData] = useState(null);
-  const [modalMode, setModalMode] = useState("create"); // "create" | "update"
+  const [modalMode, setModalMode] = useState("create");
 
-
-  // 알림
   const [notifications, setNotifications] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
 
-  // ------------------------------
-  // 1) 로그인 사용자 정보 불러오기 (로직 변경 없음)
-  // ------------------------------
+  // =============================
+  // 사용자 정보 로드
+  // =============================
   useEffect(() => {
     const loadUser = async () => {
       try {
-        console.log("[MainPage] /users/profile 요청 시작");
         const res = await api.get("/users/profile");
-        console.log("[MainPage] /users/profile 응답:", res.data);
-
         setUserId(res.data.userId);
         setUsername(res.data.name);
-
-        // Dashboard 등에서 userId를 localStorage로도 쓰는 경우 대비
         localStorage.setItem("userId", res.data.userId);
-        console.log(
-          "[MainPage] userId 상태/로컬스토리지 설정 완료:",
-          res.data.userId
-        );
       } catch (err) {
         console.error("유저 정보 실패:", err);
       }
@@ -99,13 +80,12 @@ const MainPage = () => {
     loadUser();
   }, []);
 
-  // ------------------------------
-  // 2) 리더 여부 확인 (로직 변경 없음)
-  // ------------------------------
+  // =============================
+  // 일정 로드
+  // =============================
   const loadSchedules = async () => {
     try {
       const res = await api.get("/study-schedules/me");
-      console.log("[MainPage] /study-schedules/me 응답:", res.data);
 
       const processed = await Promise.all(
         res.data.map(async (s) => {
@@ -114,22 +94,13 @@ const MainPage = () => {
 
           let group = null;
 
-          // 🔹 groupId가 있을 때만 그룹 단건 조회
           if (groupId != null) {
             try {
-              console.log("[MainPage] 그룹 단건 조회 요청, gid =", groupId);
               const groupRes = await api.get(`/study-groups/${groupId}`);
               group = groupRes.data;
             } catch (err) {
-              console.error(
-                "[MainPage] 그룹 단건 조회 실패 (gid=" + groupId + "):",
-                err
-              );
+              console.error("그룹 조회 실패:", err);
             }
-          } else {
-            console.log(
-              "[MainPage] 이 일정은 개인 일정이라 groupId 없음, 그룹 API 호출 스킵"
-            );
           }
 
           return {
@@ -137,36 +108,27 @@ const MainPage = () => {
             groupId,
             title: s.title,
             groupTitle: group?.title || s.title,
-            content: s.description, // DTO에는 없을 수 있지만 기존 코드 유지
-            location: s.location,
-            date: new Date(s.startTime), 
-            isJoined: true,
+            content: s.description,
+            date: new Date(s.startTime),
             lat: group?.latitude ?? null,
             lng: group?.longitude ?? null,
-            leaderName: group?.leaderName || "", 
           };
         })
       );
 
-      console.log("[MainPage] 가공된 일정 데이터:", processed);
       setSchedules(processed);
     } catch (e) {
-      console.error("[MainPage] 일정 조회 실패:", e);
+      console.error("일정 로드 실패:", e);
     }
   };
 
   useEffect(() => {
-    if (!userId) {
-      console.log("[MainPage] 일정 조회 생략: userId 없음");
-      return;
-    }
-    console.log("[MainPage] 일정 조회 시작 (userId:", userId, ")");
-    loadSchedules();
-  }, [userId]); 
+    if (userId) loadSchedules();
+  }, [userId]);
 
-  // ------------------------------
-  // 2-A) 리더 여부 확인 + 상세 디버깅 로그
-  // ------------------------------
+  // =============================
+  // 리더 여부 확인
+  // =============================
   useEffect(() => {
     if (!userId) return;
 
@@ -175,108 +137,88 @@ const MainPage = () => {
         const res = await api.get("/study-groups");
         const groups = res.data || [];
 
-        // 내가 리더인 스터디 목록
-        const myLeaderGroups = groups.filter(g => g.leaderId === userId);
+        const myLeaderGroups = groups.filter(
+          (g) => g.leaderId === userId
+        );
 
-        // 1) 기존 리더 여부 설정 (HOME 화면 버튼 표시용)
         setIsLeader(myLeaderGroups.length > 0);
-
-        // 2) 일정 등록 모달에서 사용할 리더 스터디 목록 설정
         setLeaderGroups(myLeaderGroups);
-
       } catch (e) {
-        console.error("리더 여부 체크 실패:", e);
+        console.error("리더 체크 실패:", e);
       }
     };
 
     checkLeader();
   }, [userId]);
 
-  // -----------------------------------------------------
-  // 지도 문제 해결 핵심: 페이지 이동 시 mapRef 초기화
-  // -----------------------------------------------------
+  // =============================
+  // Google Maps 초기화
+  // =============================
   useEffect(() => {
-    mapRef.current = null;  
-  }, [location.pathname]);   // 페이지 이동마다 초기화
+    if (!window.google || !window.google.maps) return;
 
-  // -----------------------------------------------------
-  // 지도 초기화 (항상 새로 렌더링)
-  // -----------------------------------------------------
-  useEffect(() => {
-    if (!window.kakao) return;
+    const mapContainer = document.getElementById("map");
+    if (!mapContainer) return;
 
-    window.kakao.maps.load(() => {
-      const container = document.getElementById("map");
-      if (!container) return;
-
-      // 항상 새 지도 생성
-      mapRef.current = new window.kakao.maps.Map(container, {
-        center: new window.kakao.maps.LatLng(37.5665, 126.9780),
-        level: 6,
-      });
+    googleMap.current = new window.google.maps.Map(mapContainer, {
+      center: { lat: 37.5665, lng: 126.9780 },
+      zoom: 13,
     });
-  }, [location.pathname]);   // 페이지 이동할 때마다 실행
+  }, [location.pathname]);
 
-  // -----------------------------------------------------
-  // 마커 갱신
-  // -----------------------------------------------------
+  // =============================
+  // Google Map Marker 처리
+  // =============================
   useEffect(() => {
-    if (!mapRef.current) return;
+    if (!googleMap.current) return;
 
     // 기존 마커 제거
     markersRef.current.forEach((m) => m.setMap(null));
     markersRef.current = [];
 
-    // 🔵 내 위치 마커 (기존 유지)
+    // 내 위치 마커
     if (userLocation) {
-      const myMarker = new window.kakao.maps.Marker({
-        map: mapRef.current,
-        position: new window.kakao.maps.LatLng(
-          userLocation.lat,
-          userLocation.lng
-        ),
+      const myMarker = new window.google.maps.Marker({
+        position: { lat: userLocation.lat, lng: userLocation.lng },
+        map: googleMap.current,
       });
-      markersRef.current.push(myMarker);
 
-      mapRef.current.setCenter(
-        new window.kakao.maps.LatLng(userLocation.lat, userLocation.lng)
-      );
+      googleMap.current.setCenter({
+        lat: userLocation.lat,
+        lng: userLocation.lng,
+      });
+
+      markersRef.current.push(myMarker);
     }
 
-    // ⭐ 스터디 전용 마커 이미지
-    const studyMarkerImg = new window.kakao.maps.MarkerImage(
-      "https://t1.daumcdn.net/localimg/localimages/07/mapapidoc/markerStar.png",
-      new window.kakao.maps.Size(24, 35)
-    );
-
-
-    // 🔴 스터디 위치 마커 + 클릭 시 InfoWindow 표시
+    // 스터디 마커
     schedules.forEach((s) => {
       if (!s.lat || !s.lng) return;
 
-      const marker = new window.kakao.maps.Marker({
-        map: mapRef.current,
-        position: new window.kakao.maps.LatLng(s.lat, s.lng),
-        image: studyMarkerImg, // ⭐ 커스텀 마커 적용
+      const marker = new window.google.maps.Marker({
+        position: { lat: s.lat, lng: s.lng },
+        map: googleMap.current,
       });
 
-      // InfoWindow 생성
-      const infoWindow = new window.kakao.maps.InfoWindow({
-        content: `<div style="padding:5px;font-size:14px;">${s.groupTitle}</div>`
+      const info = new window.google.maps.InfoWindow({
+        content: `<div style="font-size:14px;">${s.groupTitle}</div>`,
       });
 
-      // 마커 클릭 이벤트 → 스터디 이름 표시
-      window.kakao.maps.event.addListener(marker, "click", () => {
-        infoWindow.open(mapRef.current, marker);
+      marker.addListener("click", () => {
+        info.open({
+          anchor: marker,
+          map: googleMap.current,
+        });
       });
 
       markersRef.current.push(marker);
     });
   }, [userLocation, schedules]);
 
-  // 사용자 위치 가져오기 
+  // =============================
+  // 사용자 위치 가져오기
+  // =============================
   useEffect(() => {
-    // MainPage 들어올 때만 위치 갱신
     if (!location.pathname.startsWith("/main")) return;
 
     navigator.geolocation.getCurrentPosition(
@@ -289,7 +231,9 @@ const MainPage = () => {
     );
   }, [location.pathname]);
 
+  // =============================
   // 날짜 하이라이트
+  // =============================
   const highlightScheduleDates = ({ date }) => {
     const found = schedules.find(
       (s) =>
@@ -300,7 +244,6 @@ const MainPage = () => {
     return found ? "highlight" : "";
   };
 
-  // 선택한 날짜의 일정
   const schedulesForDate = schedules.filter(
     (s) =>
       s.date.getFullYear() === selectedDate.getFullYear() &&
@@ -308,9 +251,9 @@ const MainPage = () => {
       s.date.getDate() === selectedDate.getDate()
   );
 
-  // ------------------------------
-  // 알림 조회
-  // ------------------------------  
+  // =============================
+  // 알림 처리 로직 (기존 그대로)
+  // =============================
   useEffect(() => {
     if (!userId) return;
 
@@ -320,8 +263,8 @@ const MainPage = () => {
         const mapped = res.data.map((n) => ({
           id: n.notificationId,
           message: n.message,
+          isRead: n.is_read,
           type: n.type,
-          isRead: n.is_read, // ✅ DTO 필드명 is_read 기준으로 매핑
         }));
         setNotifications(mapped);
       } catch (err) {
@@ -330,76 +273,62 @@ const MainPage = () => {
     };
 
     loadNotifications();
-
-    // 읽지 않은 알림 개수
     loadUnreadCount();
   }, [userId]);
 
-  // 읽지 않은 알림 수만
   const loadUnreadCount = async () => {
     try {
       const res = await api.get("/notifications/unread");
-      setUnreadCount(res.data.length || 0); // unread 배열 길이
+      setUnreadCount(res.data.length || 0);
     } catch (err) {
-      console.error("읽지 않은 알림 로딩 실패:", err);
+      console.error("unread count 실패:", err);
     }
   };
 
-  // 알림 읽음 처리
-    const markAsRead = async (id) => {
+  const markAsRead = async (id) => {
     try {
       await api.patch(`/notifications/${id}/read`);
       setNotifications((prev) =>
         prev.map((n) =>
-          n.id === id
-            ? {
-                ...n,
-                isRead: true,
-              }
-            : n
+          n.id === id ? { ...n, isRead: true } : n
         )
       );
-
       setUnreadCount((prev) => Math.max(prev - 1, 0));
     } catch (err) {
       console.error("읽음 실패:", err);
     }
   };
 
-  // 알림 삭제
   const deleteNotification = async (id) => {
-    if (!window.confirm("이 알림을 삭제하시겠습니까?")) return;
-
     try {
       await api.delete(`/notifications/${id}`);
-      setNotifications((prev) => prev.filter((n) => n.id !== id));
-
-      // unread 상태였으면 감소
       const target = notifications.find((n) => n.id === id);
+
       if (target && !target.isRead) {
         setUnreadCount((prev) => Math.max(prev - 1, 0));
       }
+
+      setNotifications((prev) => prev.filter((n) => n.id !== id));
     } catch (err) {
       console.error("알림 삭제 실패:", err);
     }
   };
 
-  // 모든 알림 삭제
   const deleteAllNotifications = async () => {
-    if (!window.confirm("모든 알림을 삭제하시겠습니까?")) return;
+    if (!window.confirm("모든 알림 삭제?")) return;
 
     try {
       await api.delete("/notifications/all");
       setNotifications([]);
       setUnreadCount(0);
     } catch (err) {
-      console.error("알림 전체 삭제 실패:", err);
+      console.error("전체 삭제 실패:", err);
     }
   };
 
-  // ------------------------------
+  // =============================
   // UI
-  // ------------------------------
+  // =============================
   return (
     <div className="mainpage-wrapper">
       {/* NAVBAR */}
@@ -420,10 +349,7 @@ const MainPage = () => {
           >
             🔔 알림
             {unreadCount > 0 && (
-              <span
-                className="badge bg-danger position-absolute top-0 start-100 translate-middle"
-                style={{ fontSize: "0.75rem" }}
-              >
+              <span className="badge bg-danger position-absolute top-0 start-100 translate-middle">
                 {unreadCount}
               </span>
             )}
@@ -472,105 +398,100 @@ const MainPage = () => {
           {/* CONTENT */}
           <div className="col-9 p-4">
             <Routes>
-              {/* HOME */}
               <Route
-              index
-              element={
-                <div>
-                  {/* ✅ 제목 + 버튼: 달력/지도 위에 한 줄로 배치 */}
-                  <div className="d-flex justify-content-between align-items-center mb-3">
-                    <h2 className="mb-0">
-                      <strong>스터디 일정</strong>
-                    </h2>
+                index
+                element={
+                  <div>
+                    <div className="d-flex justify-content-between align-items-center mb-3">
+                      <h2 className="mb-0">
+                        <strong>스터디 일정</strong>
+                      </h2>
 
-                    <div>
-                      {isLeader && (
+                      <div>
+                        {isLeader && (
+                          <button
+                            className="learn-more btn-spacing"
+                            onClick={() => {
+                              setCreateMode("study");
+                              setShowCreateModal(true);
+                            }}
+                          >
+                            ➕ 스터디 일정 등록
+                          </button>
+                        )}
+
                         <button
                           className="learn-more btn-spacing"
                           onClick={() => {
-                            setCreateMode("study");
+                            setCreateMode("personal");
                             setShowCreateModal(true);
                           }}
                         >
-                          ➕ 스터디 일정 등록
+                          ➕ 개인 일정 등록
                         </button>
-                      )}
-
-                      <button
-                        className="learn-more btn-spacing"
-                        onClick={() => {
-                          setCreateMode("personal");
-                          setShowCreateModal(true);
-                        }}
-                      >
-                        ➕ 개인 일정 등록
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* ✅ 달력 / 지도 수평 정렬 */}
-                  <div className="row">
-                    {/* 달력 영역 */}
-                    <div className="col-md-6">
-                      <Calendar
-                        onChange={setSelectedDate}
-                        value={selectedDate}
-                        tileClassName={highlightScheduleDates}
-                      />
-
-                      <p className="mt-2">
-                        선택한 날짜: {selectedDate.toDateString()}
-                      </p>
-
-                      {/* 일정 리스트 */}
-                      {schedulesForDate.length > 0 ? (
-                        schedulesForDate.map((s) => (
-                          <div
-                            className="p-2 border rounded mb-2 schedule-item"
-                            style={{ cursor: "pointer" }}
-                            key={s.id}
-                            onClick={() => {
-                              setDetailScheduleId(s.id);
-                              setOpenDetailModal(true);
-                            }}
-                          >
-                            <strong>{s.title}</strong>
-                          </div>
-                        ))
-                      ) : (
-                        <p>등록된 일정이 없습니다.</p>
-                      )}
+                      </div>
                     </div>
 
-                    {/* 지도 영역 */}
-                    <div className="col-md-6 d-flex align-items-stretch">
-                      <div
-                        id="map"
-                        style={{
-                          width: "100%",
-                          height: "400px",
-                          borderRadius: "10px",
-                          backgroundColor: "#eee",
-                        }}
-                      ></div>
+                    {/* 달력 + 지도 */}
+                    <div className="row">
+                      <div className="col-md-6">
+                        <Calendar
+                          onChange={setSelectedDate}
+                          value={selectedDate}
+                          tileClassName={highlightScheduleDates}
+                        />
+
+                        <p className="mt-2">
+                          선택한 날짜: {selectedDate.toDateString()}
+                        </p>
+
+                        {schedulesForDate.length > 0 ? (
+                          schedulesForDate.map((s) => (
+                            <div
+                              className="p-2 border rounded mb-2 schedule-item"
+                              style={{ cursor: "pointer" }}
+                              key={s.id}
+                              onClick={() => {
+                                setDetailScheduleId(s.id);
+                                setOpenDetailModal(true);
+                              }}
+                            >
+                              <strong>{s.title}</strong>
+                            </div>
+                          ))
+                        ) : (
+                          <p>등록된 일정이 없습니다.</p>
+                        )}
+                      </div>
+
+                      <div className="col-md-6 d-flex align-items-stretch">
+                        <div
+                          id="map"
+                          style={{
+                            width: "100%",
+                            height: "400px",
+                            borderRadius: "10px",
+                            backgroundColor: "#eee",
+                          }}
+                        ></div>
+                      </div>
+                    </div>
+
+                    <div className="mt-4">
+                      <UserBasicDashboard currentUserId={userId} />
                     </div>
                   </div>
+                }
+              />
 
-                  {/* 사용자 대시보드 */}
-                  <div className="mt-4">
-                    <UserBasicDashboard currentUserId={userId} />
-                  </div>
-                </div>
-              }
-            />
-                <Route path="list" element={<StudyList />} />
-                <Route path="recommend" element={<RecommendGroups />} />
-                <Route path="board" element={<Board />} />
-                <Route path="board/write" element={<BoardWrite />} />
-                <Route path="board/detail/:postId" element={<BoardDetail />} />
-                <Route path="board/edit/:postId" element={<BoardWrite />} />
-                <Route path="mypage" element={<MyPage />} />
-                <Route path="edit-profile" element={<EditProfile />} />
+              <Route path="list" element={<StudyList />} />
+              <Route path="recommend" element={<RecommendGroups />} />
+              <Route path="board" element={<Board />} />
+              <Route path="board/write" element={<BoardWrite />} />
+              <Route path="board/detail/:postId" element={<BoardDetail />} />
+              <Route path="board/edit/:postId" element={<BoardWrite />} />
+              <Route path="mypage" element={<MyPage />} />
+              <Route path="edit-profile" element={<EditProfile />} />
             </Routes>
           </div>
         </div>
@@ -579,14 +500,14 @@ const MainPage = () => {
       {/* 일정 생성 모달 */}
       {showCreateModal && (
         <ScheduleCreateModal
-          mode={createMode}                     // "study" | "personal" | "update"
-          leaderGroups={leaderGroups}           // ★ 내가 리더인 스터디 목록 전달
+          mode={createMode}
+          leaderGroups={leaderGroups}
           baseDate={
             modalMode === "update"
               ? null
               : selectedDate.toLocaleDateString("en-CA")
           }
-          scheduleData={editScheduleData}       // 수정 모드에서는 기존 일정 데이터 전달
+          scheduleData={editScheduleData}
           onClose={() => setShowCreateModal(false)}
           onSuccess={() => {
             setShowCreateModal(false);
@@ -600,20 +521,18 @@ const MainPage = () => {
         <ScheduleDetailModal
           scheduleId={detailScheduleId}
           userId={userId}
-          onOpenAttendance={(id) => setOpenAttendanceModal(id)}  // ★ 추가
+          onOpenAttendance={(id) => setOpenAttendanceModal(id)}
           onClose={(mode, schedule) => {
             setOpenDetailModal(false);
 
-            // ⭐ 삭제 후 목록 새로고침
             if (mode === "deleted") {
-              loadSchedules();    // ← 일정 목록 다시 불러오기
+              loadSchedules();
               return;
             }
 
             if (mode === "update") {
-              console.log("수정할 schedule:", schedule);
-              setEditScheduleData(schedule);               // 수정할 데이터 저장
-              setModalMode("update");                      // 수정 모드 설정
+              setEditScheduleData(schedule);
+              setModalMode("update");
               setCreateMode(schedule.group_id ? "study" : "personal");
               setShowCreateModal(true);
             }
@@ -651,24 +570,30 @@ const MainPage = () => {
                 <ul className="list-group">
                   {notifications.map((n) => (
                     <li
-                    key={n.id}
-                    className={`list-group-item d-flex justify-content-between align-items-center 
-                    ${n.isRead ? "read-notification" : "unread-notification"}`}
-                  >
-                    <div onClick={() => markAsRead(n.id)} style={{ cursor: "pointer", flex: 1 }}>
-                      <span>{n.message}</span>
-                      {!n.isRead && (
-                        <span className="badge bg-warning text-dark ms-2">새 알림</span>
-                      )}
-                    </div>
-
-                    <button
-                      className="btn btn-sm btn-outline-danger ms-2"
-                      onClick={() => deleteNotification(n.id)}
+                      key={n.id}
+                      className={`list-group-item d-flex justify-content-between align-items-center ${
+                        n.isRead ? "read-notification" : "unread-notification"
+                      }`}
                     >
-                      🗑
-                    </button>
-                  </li>
+                      <div
+                        onClick={() => markAsRead(n.id)}
+                        style={{ cursor: "pointer", flex: 1 }}
+                      >
+                        <span>{n.message}</span>
+                        {!n.isRead && (
+                          <span className="badge bg-warning text-dark ms-2">
+                            새 알림
+                          </span>
+                        )}
+                      </div>
+
+                      <button
+                        className="btn btn-sm btn-outline-danger ms-2"
+                        onClick={() => deleteNotification(n.id)}
+                      >
+                        🗑
+                      </button>
+                    </li>
                   ))}
                 </ul>
               </div>
@@ -680,7 +605,6 @@ const MainPage = () => {
                 >
                   전체 삭제
                 </button>
-
                 <button
                   className="btn btn-secondary btn-sm"
                   onClick={() => setShowNotifications(false)}

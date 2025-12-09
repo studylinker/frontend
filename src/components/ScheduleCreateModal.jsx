@@ -5,7 +5,7 @@ import api from "../api/axios";
 const ScheduleCreateModal = ({
   mode,               // "study" | "personal" | "update"
   groupId = null,
-  leaderGroups = [],   // ★ 추가
+  leaderGroups = [],   
   baseDate = null,    // YYYY-MM-DD
   scheduleData = null,
   onClose,
@@ -14,7 +14,6 @@ const ScheduleCreateModal = ({
 
   const isUpdate = mode === "update";
 
-  // 🔥 수정: group_id 대신 camelCase groupId 도 체크
   const isStudyMode =
     mode === "study" || (isUpdate && (scheduleData?.group_id || scheduleData?.groupId));
 
@@ -28,7 +27,7 @@ const ScheduleCreateModal = ({
   const [selectedGroupId, setSelectedGroupId] = useState(groupId);
 
   // -------------------------------
-  // 🔥 수정 모드일 때 기존 일정 값 세팅 (camelCase 대응)
+  // 수정 모드일 때 기존 일정 값 세팅 
   // -------------------------------
   useEffect(() => {
     if (isUpdate && scheduleData) {
@@ -70,10 +69,9 @@ const ScheduleCreateModal = ({
 
     try {
       // -------------------------------
-      // 🔥 UPDATE 모드
+      // UPDATE 모드
       // -------------------------------
       if (isUpdate) {
-        // 🔥 FIX: ID가 scheduleId(camelCase)로 오므로 보정
         const id =
           scheduleData.schedule_id ??
           scheduleData.scheduleId ??
