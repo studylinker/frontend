@@ -6,6 +6,7 @@ import Calendar from "react-calendar";
 import "react-calendar/dist/Calendar.css";
 import "./Mainpage.css";
 import api from "../api/axios";
+import { FiBell, FiTrash2, FiX, FiInbox } from "react-icons/fi";
 
 // 기존 컴포넌트들
 import StudyList from "./main/StudyList";
@@ -575,70 +576,126 @@ const MainPage = () => {
       {showNotifications && (
         <div
           className="modal d-block"
-          style={{ backgroundColor: "rgba(0,0,0,0.4)" }}
+          style={{
+            backgroundColor: "rgba(0,0,0,0.45)",
+            backdropFilter: "blur(3px)",
+          }}
         >
           <div className="modal-dialog modal-dialog-centered">
-            <div className="modal-content">
-              <div className="modal-header bg-primary text-white">
-                <h5 className="modal-title">🔔 알림</h5>
+            <div className="modal-content shadow-lg" style={{ borderRadius: "14px" }}>
+
+              {/* 📌 헤더 (진한 고급 갈색) */}
+              <div
+                className="modal-header"
+                style={{
+                  backgroundColor: "#5B4636", // 진한 브라운
+                  color: "#fff",
+                  borderTopLeftRadius: "14px",
+                  borderTopRightRadius: "14px",
+                }}
+              >
+                <h5 className="modal-title d-flex align-items-center">
+                  <FiBell className="me-2" size={20} /> <strong>알림</strong>
+                </h5>
+
                 <button
-                  className="btn-close btn-close-white"
+                  className="btn"
                   onClick={() => setShowNotifications(false)}
-                ></button>
+                  style={{ color: "white" }}
+                >
+                  <FiX size={22} />
+                </button>
               </div>
 
-              <div className="modal-body">
-                {notifications.length === 0 && <p>알림이 없습니다.</p>}
+              {/* 📌 바디 */}
+              <div className="modal-body" style={{ backgroundColor: "#FFFDF9" }}>
+                {notifications.length === 0 && (
+                  <div className="text-center text-muted py-3">
+                    <FiInbox size={28} className="mb-2" />
+                    <p>알림이 없습니다.</p>
+                  </div>
+                )}
 
                 <ul className="list-group">
                   {notifications.map((n) => (
                     <li
                       key={n.id}
-                      className={`list-group-item d-flex justify-content-between align-items-center ${
-                        n.isRead ? "read-notification" : "unread-notification"
-                      }`}
+                      className={`list-group-item d-flex justify-content-between align-items-center
+                        ${n.isRead ? "read-notification" : "unread-notification"}`}
+                      style={{
+                        borderRadius: "10px",
+                        marginBottom: "8px",
+                        backgroundColor: n.isRead ? "#f7f7f7" : "#fff8e8",
+                        border: "1px solid #eee",
+                        cursor: "pointer",
+                      }}
+                      onClick={() => markAsRead(n.id)}
                     >
-                      <div
-                        onClick={() => markAsRead(n.id)}
-                        style={{ cursor: "pointer", flex: 1 }}
-                      >
+                      <div style={{ flex: 1 }}>
                         <span>{n.message}</span>
                         {!n.isRead && (
-                          <span className="badge bg-warning text-dark ms-2">
+                          <span
+                            className="badge ms-2"
+                            style={{ backgroundColor: "#FFCA85", color: "#5B4636" }}
+                          >
                             새 알림
                           </span>
                         )}
                       </div>
 
+                      {/* 휴지통 버튼 */}
                       <button
-                        className="btn btn-sm btn-outline-danger ms-2"
-                        onClick={() => deleteNotification(n.id)}
+                        className="btn p-1 ms-2"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          deleteNotification(n.id);
+                        }}
+                        style={{ color: "#cc4444" }}
                       >
-                        🗑
+                        <FiTrash2 size={18} />
                       </button>
                     </li>
                   ))}
                 </ul>
               </div>
 
-              <div className="modal-footer">
+              {/* 📌 푸터 */}
+              <div
+                className="modal-footer"
+                style={{ backgroundColor: "#FFFDF9", borderTop: "1px solid #eee" }}
+              >
+                {/* 전체 삭제 버튼 (파스텔 핑크/코랄톤) */}
                 <button
-                  className="btn btn-danger btn-sm me-auto"
+                  className="btn me-auto"
                   onClick={deleteAllNotifications}
+                  style={{
+                    backgroundColor: "#FFB7B2",
+                    color: "#5B2E2E",
+                    fontWeight: "600",
+                    borderRadius: "8px",
+                  }}
                 >
                   전체 삭제
                 </button>
+
                 <button
-                  className="btn btn-secondary btn-sm"
+                  className="btn"
                   onClick={() => setShowNotifications(false)}
+                  style={{
+                    backgroundColor: "#D2CFCB",
+                    color: "#4B4B4B",
+                    borderRadius: "8px",
+                  }}
                 >
                   닫기
                 </button>
               </div>
+
             </div>
           </div>
         </div>
       )}
+
     </div>
   );
 };
