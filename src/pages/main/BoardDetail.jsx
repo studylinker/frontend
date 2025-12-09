@@ -16,25 +16,56 @@ const BoardDetail = () => {
   const [userId, setUserId] = useState(null);
   const [groupInfo, setGroupInfo] = useState(null);
 
+  // ⭐ 추가된 state: 리뷰 평점 정보
+  const [ratingInfo, setRatingInfo] = useState(null);
+
+  // 로그인 사용자 불러오기
   useEffect(() => {
     api.get("/users/profile")
       .then((res) => setUserId(res.data.userId))
       .catch(() => {});
   }, []);
 
+  // 게시글 / 댓글 / 스터디정보 / 평점 불러오기
   useEffect(() => {
     const load = async () => {
       try {
+        // 게시글 정보
         const res = await api.get(`/study-posts/${postId}`);
         const data = res.data;
         setPost(data);
 
         const gid = data.groupId ?? data.group_id;
+
+        // REVIEW 글일 경우: 스터디명 가져오기
         if (data.type === "REVIEW" && gid) {
           const gRes = await api.get(`/study-groups/${gid}`);
           setGroupInfo(gRes.data);
         }
 
+        // ⭐ REVIEW 글일 경우: 평점 가져오기
+        if (data.type === "REVIEW") {
+          try {
+            const rRes = await api.get(`/study-posts/${postId}/reviews`);
+            const reviews = Array.isArray(rRes.data) ? rRes.data : [];
+
+            if (reviews.length > 0) {
+              const sum = reviews.reduce((acc, r) => acc + (r.rating || 0), 0);
+              const avg = sum / reviews.length;
+
+              setRatingInfo({
+                avg: avg.toFixed(1),
+                count: reviews.length,
+              });
+            } else {
+              setRatingInfo({ avg: null, count: 0 });
+            }
+          } catch (e) {
+            console.error("평점 불러오기 실패:", e);
+          }
+        }
+
+        // 댓글 목록
         const cRes = await api.get(`/study-posts/${postId}/comments`);
         setComments(cRes.data);
       } catch (err) {
@@ -43,11 +74,13 @@ const BoardDetail = () => {
         setLoading(false);
       }
     };
+
     load();
   }, [postId]);
 
   if (loading || !post) return <p>로딩 중...</p>;
 
+  // 게시글 삭제
   const deletePost = async () => {
     if (!window.confirm("삭제하시겠습니까?")) return;
     try {
@@ -59,6 +92,7 @@ const BoardDetail = () => {
     }
   };
 
+  // 댓글 작성
   const writeComment = async () => {
     if (!newComment.trim()) return;
 
@@ -75,6 +109,7 @@ const BoardDetail = () => {
     }
   };
 
+  // 댓글 삭제
   const deleteCommentFn = async (cid) => {
     if (!window.confirm("댓글을 삭제하시겠습니까?")) return;
 
@@ -102,22 +137,48 @@ const BoardDetail = () => {
 
           <p className="text-muted">작성자: {post.leaderName || "익명"}</p>
 
+          {/* REVIEW 글일 때 스터디명 표시 */}
           {post.type === "REVIEW" && groupInfo && (
             <p className="text-muted">
               스터디명: <strong>{groupInfo.title}</strong>
             </p>
           )}
 
-          {/* 수정/삭제 버튼 */}
+          {/* ⭐ REVIEW 글일 때 평점 표시 UI 추가 */}
+          {post.type === "REVIEW" && ratingInfo && (
+            <div
+              className="p-3 mt-2"
+              style={{
+                background: "#f8f1ff",
+                borderRadius: "8px",
+                border: "1px solid #e2ccff",
+                display: "inline-block",
+              }}
+            >
+              <strong style={{ fontSize: "1.1rem" }}>⭐ 평점</strong>
+              <div style={{ fontSize: "1rem", marginTop: "4px" }}>
+                {ratingInfo.count > 0 ? (
+                  <>
+                    <span style={{ fontWeight: "bold", color: "#7540ee" }}>
+                      {ratingInfo.avg}점
+                    </span>{" "}
+                    <small className="text-muted">
+                      ({ratingInfo.count}개의 리뷰)
+                    </small>
+                  </>
+                ) : (
+                  <span className="text-muted">아직 리뷰가 없습니다.</span>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* 수정/삭제/신고 버튼 */}
           {post.leaderId === userId && (
             <div className="mt-3">
               <button
                 className="btn me-2"
-                style={{
-                  backgroundColor: "#A3E4D7",
-                  color: "#000",
-                  fontWeight: "500",
-                }}
+                style={{ backgroundColor: "#A3E4D7", color: "#000", fontWeight: "500" }}
                 onClick={() => navigate(`/main/board/edit/${postId}`)}
               >
                 수정
@@ -125,14 +186,38 @@ const BoardDetail = () => {
 
               <button
                 className="btn"
-                style={{
-                  backgroundColor: "#F5B7B1",
-                  color: "#000",
-                  fontWeight: "500",
-                }}
+                style={{ backgroundColor: "#F5B7B1", color: "#000", fontWeight: "500" }}
                 onClick={deletePost}
               >
                 삭제
+              </button>
+
+              {/* 신고 버튼 */}
+              <button
+                className="btn"
+                style={{
+                  backgroundColor: "#f8d7da",
+                  color: "#721c24",
+                  fontWeight: "500",
+                  marginLeft: "8px",
+                }}
+                onClick={async () => {
+                  const reason = prompt("신고 사유를 입력하세요:");
+                  if (!reason) return;
+
+                  try {
+                    await api.patch(`/study-posts/${postId}`, {
+                      reported: true,
+                      reportReason: reason,
+                    });
+                    alert("신고 완료");
+                  } catch (err) {
+                    console.error("신고 실패:", err);
+                    alert("신고 실패");
+                  }
+                }}
+              >
+                🚨 신고
               </button>
             </div>
           )}
@@ -148,7 +233,7 @@ const BoardDetail = () => {
             <p style={{ marginBottom: 6 }}>{c.content}</p>
 
             <small className="text-muted">
-              {c.userName || "사용자"} • {c.createdAt}
+              {c.userName || "사용자"} • {(c.createdAt || "").replace("T", " ")}
             </small>
 
             {c.userId === userId && (
@@ -179,14 +264,10 @@ const BoardDetail = () => {
           onChange={(e) => setNewComment(e.target.value)}
         />
 
-        {/* 댓글 작성 버튼 → 보라색 */}
+        {/* 댓글 작성 버튼 */}
         <button
           className="btn mt-2"
-          style={{
-            backgroundColor: "#a78bfa",
-            color: "white",
-            fontWeight: "bold",
-          }}
+          style={{ backgroundColor: "#a78bfa", color: "white", fontWeight: "bold" }}
           onClick={writeComment}
         >
           댓글 작성
