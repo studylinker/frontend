@@ -80,7 +80,8 @@ const UserBasicDashboard = () => {
 
   attended.forEach((att) => {
     const schedule = schedules.find(
-      (s) => (s.schedule_id ?? s.scheduleId) === att.schedule_id
+      (s) =>
+        (s.schedule_id ?? s.scheduleId) === (att.schedule_id ?? att.scheduleId)
     );
     if (!schedule) return;
 
@@ -124,8 +125,8 @@ const UserBasicDashboard = () => {
 
   const target = weeklySchedules.length;
   const done = weeklySchedules.filter((s) => {
-    const end = getEnd(s);
-    return end && new Date(end) < new Date();
+    const end = getEnd(s) ?? getStart(s); // 종료시간 없으면 시작시간으로 판단
+    return new Date(end) < new Date();
   }).length;
 
   const goalPercent = target > 0 ? (done / target) * 100 : 0;
