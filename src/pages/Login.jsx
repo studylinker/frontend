@@ -32,13 +32,10 @@ const Login = () => {
     redirect: null,
   });
 
-  // 🔥 로그인 페이지에 들어올 때 배경 추가
+  // 배경
   useEffect(() => {
     document.body.classList.add("login-background");
-
-    return () => {
-      document.body.classList.remove("login-background");
-    };
+    return () => document.body.classList.remove("login-background");
   }, []);
 
   const closeModal = () => {
@@ -149,7 +146,7 @@ const Login = () => {
 
   return (
     <div className="container">
-      <h1>{mode === "signin" ? "SIGN IN" : "SIGN UP"}</h1>
+      <h1>{mode === "signin" ? "로그인" : "회원가입"}</h1>
 
       {/* 탭 */}
       <ul className="links tab-menu">
@@ -158,17 +155,19 @@ const Login = () => {
             onClick={() => setMode("signin")}
             className={mode === "signin" ? "active" : ""}
           >
-            SIGN IN
+            로그인
           </a>
         </li>
+
         <li>
           <a
             onClick={() => setMode("signup")}
             className={mode === "signup" ? "active" : ""}
           >
-            SIGN UP
+            회원가입
           </a>
         </li>
+
         <li>
           <a
             className="reset-btn"
@@ -182,7 +181,7 @@ const Login = () => {
               setNewTag("");
             }}
           >
-            RESET
+            초기화
           </a>
         </li>
       </ul>
@@ -198,7 +197,7 @@ const Login = () => {
           <input
             type="text"
             className="input"
-            placeholder="Username"
+            placeholder="아이디"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             required
@@ -210,7 +209,7 @@ const Login = () => {
           <input
             type="password"
             className="input"
-            placeholder="Password"
+            placeholder="비밀번호"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
@@ -224,7 +223,7 @@ const Login = () => {
               <input
                 type="password"
                 className="input"
-                placeholder="Repeat Password"
+                placeholder="비밀번호 재입력"
                 value={repeatPassword}
                 onChange={(e) => setRepeatPassword(e.target.value)}
                 required
@@ -235,7 +234,7 @@ const Login = () => {
               <input
                 type="email"
                 className="input"
-                placeholder="Email"
+                placeholder="이메일"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -246,14 +245,14 @@ const Login = () => {
               <input
                 type="text"
                 className="input"
-                placeholder="Name"
+                placeholder="이름"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 required
               />
             </div>
 
-            {/* 관심사 태그 표시 */}
+            {/* 관심사 태그 */}
             <div className="tag-list-wrapper">
               {interestTags.map((tag, idx) => (
                 <span key={idx} className="tag-button">
@@ -267,7 +266,7 @@ const Login = () => {
               <input
                 type="text"
                 className="input"
-                placeholder="Add interest tag"
+                placeholder="관심 태그 추가"
                 value={newTag}
                 onChange={(e) => setNewTag(e.target.value)}
               />
@@ -276,7 +275,7 @@ const Login = () => {
                 className="addtag__btn"
                 onClick={handleAddTag}
               >
-                + Add Tag
+                + 태그 추가
               </button>
             </div>
           </>
@@ -284,7 +283,7 @@ const Login = () => {
 
         {/* 제출 버튼 */}
         <button className="signin__btn">
-          {mode === "signin" ? "Sign in" : "Sign up"}
+          {mode === "signin" ? "로그인" : "회원가입"}
         </button>
       </form>
 
