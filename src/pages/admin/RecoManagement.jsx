@@ -1,4 +1,3 @@
-// src/pages/admin/RecoManagement.jsx
 import React, { useEffect, useState } from "react";
 import api from "../../api/axios";
 
@@ -9,58 +8,10 @@ import {
   PolarAngleAxis, PolarRadiusAxis, Radar
 } from "recharts";
 
-// 🎨 React Icons
+// Icons
 import {
-  FaFire, FaStar, FaRoad, FaTags, FaSyncAlt,
-  FaMapMarkerAlt, FaBrain, FaSlidersH, FaChartLine
+  FaFire, FaTags, FaSyncAlt, FaSlidersH, FaChartLine
 } from "react-icons/fa";
-
-const TEST_MODE = true;
-
-// -------------------------
-// 🔥 Dummy Data (유지)
-// -------------------------
-const dummyPopular = [
-  {
-    groupId: 1,
-    title: "Java 알고리즘 스터디",
-    distanceKm: 1.2,
-    popScore: 0.85,
-    distanceScore: 0.7,
-    finalScore: 0.78,
-    category: ["Java", "Algorithm"],
-  },
-  {
-    groupId: 2,
-    title: "Spring Boot 공부 모임",
-    distanceKm: 2.5,
-    popScore: 0.6,
-    distanceScore: 0.5,
-    finalScore: 0.55,
-    category: ["Spring", "Backend"],
-  },
-];
-
-const dummyTag = [
-  {
-    studyGroupId: 3,
-    name: "React 프론트엔드 스터디",
-    distanceKm: 1.8,
-    tagSimilarity: 0.75,
-    distanceScore: 0.8,
-    finalScore: 0.77,
-    category: ["React", "Frontend"],
-  },
-  {
-    studyGroupId: 4,
-    name: "Node.js API 개발",
-    distanceKm: 3.0,
-    tagSimilarity: 0.6,
-    distanceScore: 0.45,
-    finalScore: 0.53,
-    category: ["Node.js", "Backend"],
-  },
-];
 
 const RecoManagement = () => {
 
@@ -73,6 +24,7 @@ const RecoManagement = () => {
 
   const [popWeight, setPopWeight] = useState(0.7);
   const [distanceWeight, setDistanceWeight] = useState(0.3);
+
   const [alpha, setAlpha] = useState(0.5);
   const [beta, setBeta] = useState(0.5);
 
@@ -80,41 +32,8 @@ const RecoManagement = () => {
   const [tagData, setTagData] = useState([]);
   const [history, setHistory] = useState([]);
 
-
   // -------------------------
-  // API · Dummy Loader
-  // -------------------------
-  const loadPopular = async () => {
-    if (TEST_MODE) {
-      setPopularData(dummyPopular);
-      return dummyPopular;
-    }
-
-    const res = await api.get("/groups/popular", {
-      params: { lat, lng, radiusKm: radius, popWeight, distanceWeight, limit: 10 }
-    });
-
-    setPopularData(res.data.groups || []);
-    return res.data.groups || [];
-  };
-
-  const loadTag = async () => {
-    if (TEST_MODE) {
-      setTagData(dummyTag);
-      return dummyTag;
-    }
-
-    const res = await api.get("/recommend/tag", {
-      params: { userId: 1, lat, lng, radiusKm: radius, limit: 10, alpha, beta }
-    });
-
-    setTagData(res.data || []);
-    return res.data || [];
-  };
-
-
-  // -------------------------
-  // Refresh & History
+  // 📌 공통 함수
   // -------------------------
   const avg = (arr) =>
     arr.length ? +(arr.reduce((a, b) => a + b, 0) / arr.length).toFixed(2) : 0;
@@ -125,6 +44,61 @@ const RecoManagement = () => {
     return tags.size;
   };
 
+  // -------------------------
+  // 🔥 인기 기반 추천
+  // -------------------------
+  const loadPopular = async () => {
+    try {
+      const res = await api.get("/recommend/popular", {
+        params: {
+          lat,
+          lng,
+          radiusKm: radius,
+          limit: 10,
+          popWeight,
+          distanceWeight,
+        },
+      });
+
+      setPopularData(res.data.groups || []);
+      return res.data.groups || [];
+
+    } catch (err) {
+      console.error("🔥 인기 기반 추천 불러오기 실패:", err);
+      setPopularData([]);
+      return [];
+    }
+  };
+
+  // -------------------------
+  // 🏷 태그 기반 추천
+  // -------------------------
+  const loadTag = async () => {
+    try {
+      const res = await api.get("/recommend/tag", {
+        params: {
+          lat,
+          lng,
+          radiusKm: radius,
+          limit: 10,
+          alpha,
+          beta,
+        },
+      });
+
+      setTagData(res.data.groups || []);
+      return res.data.groups || [];
+
+    } catch (err) {
+      console.error("🏷 태그 기반 추천 불러오기 실패:", err);
+      setTagData([]);
+      return [];
+    }
+  };
+
+  // -------------------------
+  // 🔄 추천 다시 불러오기 + 히스토리 추가
+  // -------------------------
   const refreshAll = async () => {
     const pop = await loadPopular();
     const tag = await loadTag();
@@ -135,16 +109,15 @@ const RecoManagement = () => {
       tagScore: avg(tag.map((g) => g.finalScore)),
     };
 
-    setHistory((prev) => [...prev.slice(-9), newItem]);
+    setHistory((prev) => [...prev.slice(-9), newItem]); // 최대 10개 유지
   };
 
   useEffect(() => {
     refreshAll();
   }, []);
 
-
   // -------------------------
-  // Bar Chart
+  // 📊 Bar Chart 데이터 구성
   // -------------------------
   const barData = [
     { name: "그룹 수", popular: popularData.length, tag: tagData.length },
@@ -153,6 +126,9 @@ const RecoManagement = () => {
     { name: "다양성", popular: diversity(popularData), tag: diversity(tagData) },
   ];
 
+  // -------------------------
+  // 🧭 레이더 차트 데이터 구성
+  // -------------------------
   const radarData = [
     {
       metric: "거리점수",
@@ -201,12 +177,12 @@ const RecoManagement = () => {
 
               <label className="form-label">📈 인기 가중치</label>
               <input type="number" step="0.1" min="0" max="1"
-                value={popWeight} onChange={(e) => setPopWeight(parseFloat(e.target.value))}
+                value={popWeight} onChange={(e) => setPopWeight(+e.target.value)}
                 className="form-control mb-3" />
 
               <label className="form-label">📍 거리 가중치</label>
               <input type="number" step="0.1" min="0" max="1"
-                value={distanceWeight} onChange={(e) => setDistanceWeight(parseFloat(e.target.value))}
+                value={distanceWeight} onChange={(e) => setDistanceWeight(+e.target.value)}
                 className="form-control" />
             </div>
           </div>
@@ -220,47 +196,43 @@ const RecoManagement = () => {
 
               <label className="form-label">🧲 거리 점수 가중치 (α)</label>
               <input type="number" step="0.1" min="0" max="1"
-                value={alpha} onChange={(e) => setAlpha(parseFloat(e.target.value))}
+                value={alpha} onChange={(e) => setAlpha(+e.target.value)}
                 className="form-control mb-3" />
 
               <label className="form-label">🏷 태그 유사도 가중치 (β)</label>
               <input type="number" step="0.1" min="0" max="1"
-                value={beta} onChange={(e) => setBeta(parseFloat(e.target.value))}
+                value={beta} onChange={(e) => setBeta(+e.target.value)}
                 className="form-control" />
             </div>
           </div>
 
         </div>
 
-        <button
-          className="btn refresh-btn"
-          onClick={refreshAll}
->
-            <FaSyncAlt className="me-2" />
-            새로고침 / 재계산
+        {/* 새로고침 버튼 */}
+        <button className="btn refresh-btn mt-3" onClick={refreshAll}>
+          <FaSyncAlt className="me-2" /> 새로고침 / 재계산
         </button>
 
         <style>
-        {`
-         .refresh-btn {
-          border: none;
-          padding: 10px 20px;
-          border-radius: 25px;
-          font-weight: bold;
-          color: white;
-          background: linear-gradient(90deg, #4c6ef5, #15aabf);
-          box-shadow: 0px 3px 10px rgba(0,0,0,0.15);
-          transition: all 0.2s ease;
-         }
-        .refresh-btn:hover {
-         transform: translateY(-2px);
-         box-shadow: 0px 5px 15px rgba(0,0,0,0.2);
-         }
-          .refresh-btn:active {
-         transform: scale(0.95);
-         }
-       `}
-      </style>
+          {`
+            .refresh-btn {
+              border: none;
+              padding: 10px 20px;
+              border-radius: 25px;
+              font-weight: bold;
+              color: white;
+              background: linear-gradient(90deg, #4c6ef5, #15aabf);
+              box-shadow: 0px 3px 10px rgba(0,0,0,0.15);
+              transition: all 0.2s ease;
+            }
+            .refresh-btn:hover {
+              transform: translateY(-2px);
+            }
+            .refresh-btn:active {
+              transform: scale(0.95);
+            }
+          `}
+        </style>
 
       </div>
 
@@ -269,8 +241,7 @@ const RecoManagement = () => {
       {/* ======================================================= */}
       <div className="card p-3 mb-4 shadow-sm">
         <h5 className="fw-bold d-flex align-items-center">
-          <FaChartLine className="me-2 text-primary" />
-          점수 변화 모니터링
+          <FaChartLine className="me-2 text-primary" /> 점수 변화 모니터링
         </h5>
 
         <div style={{ width: "100%", height: 300 }}>
@@ -293,6 +264,7 @@ const RecoManagement = () => {
       {/* ======================================================= */}
       <div className="card p-3 mb-4 shadow-sm">
         <h5>📊 핵심 지표 비교</h5>
+
         <div style={{ width: "100%", height: 300 }}>
           <ResponsiveContainer>
             <BarChart data={barData}>
@@ -327,7 +299,6 @@ const RecoManagement = () => {
           </ResponsiveContainer>
         </div>
       </div>
-
     </div>
   );
 };
