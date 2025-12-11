@@ -21,7 +21,7 @@ const RecoManagement = () => {
   // -------------------------
   const [lat, setLat] = useState(37.5665);
   const [lng, setLng] = useState(126.9780);
-  const [radius, setRadius] = useState(5);
+  const [radius, setRadius] = useState(999);
 
   const [popWeight, setPopWeight] = useState(0.7);
   const [distanceWeight, setDistanceWeight] = useState(0.3);
