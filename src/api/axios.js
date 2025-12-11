@@ -9,7 +9,7 @@ const api = axios.create({
       : "https://gachon.studylink.click/api",
 });
 
-// ✅ 요청 인터셉터 (로그 + 토큰 주입)
+// 요청 인터셉터 (로그 + 토큰 주입)
 api.interceptors.request.use(
   (config) => {
     const method = (config.method || "get").toUpperCase();
@@ -48,7 +48,7 @@ api.interceptors.request.use(
   }
 );
 
-// ✅ 응답 인터셉터 (로그 + 401 처리)
+// 응답 인터셉터 (로그 + 401 처리)
 api.interceptors.response.use(
   (response) => {
     console.log(
@@ -71,9 +71,9 @@ api.interceptors.response.use(
       );
 
       if (error.response.status === 401) {
-        localStorage.removeItem("token");
-        alert("로그인이 만료되었습니다. 다시 로그인해주세요.");
-        window.location.href = "/login";
+        console.warn("401 발생 → 자동 로그아웃 하지 않음.");
+        // localStorage.removeItem("token");  ❌ 삭제
+        // window.location.href = "/login";   ❌ 삭제
       }
     } else {
       console.error("[AXIOS RES ERROR - no response]", error);
