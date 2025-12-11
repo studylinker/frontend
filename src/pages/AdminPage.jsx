@@ -2,12 +2,21 @@
 
 import React from "react";
 import { Link, Routes, Route } from "react-router-dom";
-import OpsChart from "./admin/OpsChart";        // 📊 대시보드
-import UserList from "./admin/UserList";        // 👥 사용자 관리
-import GroupList from "./admin/GroupList";      // 📚 스터디 그룹 관리
-import BoardManagement from "./admin/BoardManagement"; // 📜 게시판 관리
-import RecoManagement from "./admin/RecoManagement";   // 💡 추천 관리
-import SystemManagement from "./admin/SystemManagement"; // ⚙️ 시스템/문의 관리
+import OpsChart from "./admin/OpsChart";        // 대시보드
+import UserList from "./admin/UserList";        // 사용자 관리
+import GroupList from "./admin/GroupList";      // 스터디 그룹 관리
+import BoardManagement from "./admin/BoardManagement"; // 게시판 관리
+import RecoManagement from "./admin/RecoManagement";   // 추천 관리
+import SystemManagement from "./admin/SystemManagement"; // 시스템/문의 관리
+import {
+  FaChartPie,
+  FaUsers,
+  FaLayerGroup,
+  FaClipboardList,
+  FaLightbulb,
+  FaTools
+} from "react-icons/fa";
+// 아이콘 
 
 const AdminPage = () => {
   const adminName = "관리자";
@@ -40,42 +49,54 @@ const AdminPage = () => {
       {/* Sidebar + Main */}
       <div className="container-fluid">
         <div className="row">
-          {/* Sidebar - 경로 수정 완료 */}
-          <div className="col-2 bg-light vh-100 p-3 border-end">
-            <ul className="list-group list-group-flush">
-              
-              {/* 1. 대시보드 */}
-              <li className="list-group-item">
-                <Link to="/admin/dashboard" className="nav-link">📊 대시보드</Link>
-              </li>
-              
-              {/* 2. 사용자 관리 */}
-              <li className="list-group-item">
-                <Link to="/admin/users" className="nav-link">👥 사용자 관리</Link>
-              </li>
-              
-              {/* 3. 스터디 그룹 관리 */}
-              <li className="list-group-item">
-                <Link to="/admin/groups" className="nav-link">📚 스터디 그룹 관리</Link>
-              </li>
-              
-              {/* 4. 게시판 관리 */}
-              <li className="list-group-item">
-                <Link to="/admin/board" className="nav-link">📜 게시판 관리</Link>
-              </li>
-              
-              {/* 5. 추천 관리 */}
-              <li className="list-group-item">
-                <Link to="/admin/recommendation" className="nav-link">💡 추천 관리</Link>
+          {/* Sidebar */}
+          <div className="col-2 sidebar-modern vh-100 p-0">
+            <ul className="sidebar-menu">
+
+              <li>
+                <Link to="/admin/dashboard" className="sidebar-item">
+                  <span className="icon"><FaChartPie /></span>
+                  <span>대시보드</span>
+                </Link>
               </li>
 
-              {/* 6. 시스템/문의 관리 */}
-              <li className="list-group-item">
-                <Link to="/admin/system" className="nav-link">⚙️ 시스템/문의 관리</Link>
+              <li>
+                <Link to="/admin/users" className="sidebar-item">
+                  <span className="icon"><FaUsers /></span>
+                  <span>사용자 관리</span>
+                </Link>
               </li>
+
+              <li>
+                <Link to="/admin/groups" className="sidebar-item">
+                  <span className="icon"><FaLayerGroup /></span>
+                  <span>스터디 그룹 관리</span>
+                </Link>
+              </li>
+
+              <li>
+                <Link to="/admin/board" className="sidebar-item">
+                  <span className="icon"><FaClipboardList /></span>
+                  <span>게시판 관리</span>
+                </Link>
+              </li>
+
+              <li>
+                <Link to="/admin/recommendation" className="sidebar-item">
+                  <span className="icon"><FaLightbulb /></span>
+                  <span>추천 관리</span>
+                </Link>
+              </li>
+
+              <li>
+                <Link to="/admin/system" className="sidebar-item">
+                  <span className="icon"><FaTools /></span>
+                  <span>시스템/문의 관리</span>
+                </Link>
+              </li>
+
             </ul>
           </div>
-
           {/* Main content - 라우트 확장 */}
           <div className="col-10 p-4">
             <Routes>

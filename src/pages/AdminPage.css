@@ -1,0 +1,40 @@
+/* Modern Sidebar */
+.sidebar-modern {
+  background: #f8f9fa;
+  border-right: 1px solid #e3e3e3;
+  padding-top: 20px;
+}
+
+.sidebar-menu {
+  list-style: none;
+  padding-left: 0;
+}
+
+.sidebar-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 20px;
+  color: #333;
+  text-decoration: none;
+  font-weight: 500;
+  transition: 0.2s ease;
+  border-radius: 8px;
+  margin: 6px 10px;
+}
+
+.sidebar-item:hover {
+  background: #e9ecef;
+  color: #0d6efd;
+}
+
+.sidebar-item .icon {
+  font-size: 1.2rem;
+}
+
+/* Active 메뉴 강조 */
+.sidebar-item.active,
+.sidebar-item:focus {
+  background: #0d6efd;
+  color: #fff !important;
+}
