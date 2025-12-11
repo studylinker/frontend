@@ -215,6 +215,27 @@ const RecoManagement = () => {
           <FaSyncAlt className="me-2" /> 새로고침 / 재계산
         </button>
 
+        <style>
+          {`
+            .refresh-btn {
+              border: none;
+              padding: 10px 20px;
+              border-radius: 25px;
+              font-weight: bold;
+              color: white;
+              background: linear-gradient(90deg, #4c6ef5, #15aabf);
+              box-shadow: 0px 3px 10px rgba(0,0,0,0.15);
+              transition: all 0.2s ease;
+            }
+            .refresh-btn:hover {
+              transform: translateY(-2px);
+              box-shadow: 0px 5px 15px rgba(0,0,0,0.2);
+            }
+            .refresh-btn:active {
+              transform: scale(0.95);
+            }
+          `}
+        </style>
       </div>
 
       {/* 라인 차트 */}

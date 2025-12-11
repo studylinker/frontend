@@ -15,11 +15,26 @@ const AdminPage = () => {
   return (
     <div className="admin-wrapper">
       {/* Navbar */}
-      <nav className="navbar navbar-dark bg-dark">
+      <nav className="navbar navbar-dark bg-dark px-3 d-flex justify-content-between">
         <a className="navbar-brand" href="/admin">
           Admin Panel
         </a>
-        <span className="text-light">{adminName}님</span>
+
+        <div className="d-flex align-items-center">
+          <span className="text-light me-3">{adminName}님</span>
+
+          <button
+            className="btn btn-outline-light btn-sm"
+            onClick={() => {
+              if (window.confirm("정말 로그아웃 하시겠습니까?")) {
+                localStorage.removeItem("token");
+                window.location.href = "/login";   // navigate 없이 강제 이동
+              }
+            }}
+          >
+            로그아웃
+          </button>
+        </div>
       </nav>
 
       {/* Sidebar + Main */}
