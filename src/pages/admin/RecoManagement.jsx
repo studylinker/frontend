@@ -8,24 +8,16 @@ import {
   PolarAngleAxis, PolarRadiusAxis, Radar
 } from "recharts";
 
-// Icons (중복 제거 완료)
+// Icons
 import {
-  FaBrain,
-  FaChartLine,
-  FaMapMarkerAlt,
-  FaMagnet,
-  FaTags,
-  FaSyncAlt,
-  FaChartBar,
-  FaCompass,
-  FaSlidersH,
-  FaFire
+  FaBrain, FaChartLine, FaMapMarkerAlt, FaMagnet, FaTags,
+  FaSyncAlt, FaChartBar, FaCompass, FaSlidersH, FaFire
 } from "react-icons/fa";
 
 const RecoManagement = () => {
 
   // -------------------------
-  // 상태값
+  // 📍 상태값
   // -------------------------
   const [lat, setLat] = useState(37.5665);
   const [lng, setLng] = useState(126.9780);
@@ -42,7 +34,7 @@ const RecoManagement = () => {
   const [history, setHistory] = useState([]);
 
   // -------------------------
-  // 공통 함수
+  // 📌 공통 함수
   // -------------------------
   const avg = (arr) =>
     arr.length ? +(arr.reduce((a, b) => a + b, 0) / arr.length).toFixed(2) : 0;
@@ -54,16 +46,7 @@ const RecoManagement = () => {
   };
 
   // -------------------------
-  // 시연용 점수 시뮬레이션 함수
-  // -------------------------
-  function simulateScore(baseScore, weight) {
-    // weight(0~1)에 따라 점수에 ±20% 변화 적용
-    const factor = 1 + (weight - 0.5) * 0.4;
-    return +(baseScore * factor).toFixed(2);
-  }
-
-  // -------------------------
-  // 인기 기반 추천
+  // 🔥 인기 기반 추천
   // -------------------------
   const loadPopular = async () => {
     try {
@@ -89,7 +72,7 @@ const RecoManagement = () => {
   };
 
   // -------------------------
-  // 태그 기반 추천
+  // 🏷 태그 기반 추천
   // -------------------------
   const loadTag = async () => {
     try {
@@ -115,27 +98,19 @@ const RecoManagement = () => {
   };
 
   // -------------------------
-  // 추천 다시 불러오기 + 히스토리 추가
+  // 🔄 추천 다시 불러오기 + 히스토리 추가
   // -------------------------
   const refreshAll = async () => {
     const pop = await loadPopular();
     const tag = await loadTag();
 
-    // 원본 점수
-    const rawPopScore = avg(pop.map((g) => g.finalScore));
-    const rawTagScore = avg(tag.map((g) => g.finalScore));
-
-    //  시연용 변화 적용
-    const simulatedPopScore = simulateScore(rawPopScore, popWeight);
-    const simulatedTagScore = simulateScore(rawTagScore, alpha);
-
     const newItem = {
       time: new Date().toLocaleTimeString(),
-      popScore: simulatedPopScore,
-      tagScore: simulatedTagScore,
+      popScore: avg(pop.map((g) => g.finalScore)),
+      tagScore: avg(tag.map((g) => g.finalScore)),
     };
 
-    setHistory((prev) => [...prev.slice(-9), newItem]); // 최대 10개 저장
+    setHistory((prev) => [...prev.slice(-9), newItem]); // 최대 10개 유지
   };
 
   useEffect(() => {
@@ -143,7 +118,7 @@ const RecoManagement = () => {
   }, []);
 
   // -------------------------
-  // Bar Chart 데이터
+  // 📊 Bar Chart 데이터 구성
   // -------------------------
   const barData = [
     { name: "그룹 수", popular: popularData.length, tag: tagData.length },
@@ -153,7 +128,7 @@ const RecoManagement = () => {
   ];
 
   // -------------------------
-  // 레이더 차트 데이터
+  // 🧭 레이더 차트 데이터 구성
   // -------------------------
   const radarData = [
     {
@@ -180,6 +155,7 @@ const RecoManagement = () => {
 
   return (
     <div>
+      {/* 제목: 🧠 → FaBrain */}
       <h2 className="mb-4 d-flex align-items-center">
         <FaBrain className="me-2 text-primary" />
         추천 알고리즘 관리 및 모니터링
@@ -238,20 +214,6 @@ const RecoManagement = () => {
         <button className="btn refresh-btn mt-3" onClick={refreshAll}>
           <FaSyncAlt className="me-2" /> 새로고침 / 재계산
         </button>
-
-        <style>
-          {`
-            .refresh-btn {
-              border: none;
-              padding: 10px 20px;
-              border-radius: 25px;
-              font-weight: bold;
-              color: white;
-              background: linear-gradient(90deg, #4c6ef5, #15aabf);
-              transition: all 0.2s ease;
-            }
-          `}
-        </style>
 
       </div>
 
@@ -318,7 +280,6 @@ const RecoManagement = () => {
           </ResponsiveContainer>
         </div>
       </div>
-
     </div>
   );
 };
