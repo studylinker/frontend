@@ -186,8 +186,10 @@ const MyPage = () => {
             <button
               className="btn btn-outline-secondary me-2"
               onClick={() => {
-                localStorage.removeItem("token");   // 토큰 삭제
-                navigate("/login");                 // 로그인 페이지로 이동
+                if (window.confirm("정말 로그아웃 하시겠습니까?")) {
+                  localStorage.removeItem("token");
+                  navigate("/login");
+                }
               }}
             >
               로그아웃
