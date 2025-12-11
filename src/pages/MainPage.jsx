@@ -46,9 +46,10 @@ const MainPage = () => {
   const [selectedDate, setSelectedDate] = useState(new Date());
 
   // 지도
-  const mapContainerRef = useRef(null);       // 지도 DOM
-  const googleMapRef = useRef(null);          // 지도 객체
-  const markerRefs = useRef([]);              // 지도 마커들
+  const mapContainerRef = useRef(null); 
+  const googleMapRef = useRef(null); 
+  const markerRefs = useRef([]); 
+  const [mapReady, setMapReady] = useState(false);
 
   // 현재 사용자 위치
   const [userLocation, setUserLocation] = useState(null);
@@ -219,7 +220,7 @@ const MainPage = () => {
     });
 
     console.log("🌍 Google Map CREATED");
-
+    setMapReady(true);     // ★ 지도 생성 완료 플래그
   }, [location.pathname, userLocation]);
 
 
@@ -228,6 +229,7 @@ const MainPage = () => {
   // ===================================================================
   useEffect(() => {
     if (!googleMapRef.current) return;
+    if (!mapReady) return;   // ★ 지도 준비 안되어 있으면 실행 X
 
     // 기존 마커 제거
     markerRefs.current.forEach((m) => m.setMap(null));
@@ -249,7 +251,7 @@ const MainPage = () => {
     // -------------------------------
     // 🔴 스터디 일정 마커
     // -------------------------------
-    schedules.forEach((s) => {
+     schedules.forEach((s) => {
       if (!s.lat || !s.lng) return;
 
       const mk = new window.google.maps.Marker({
@@ -266,7 +268,7 @@ const MainPage = () => {
       markerRefs.current.push(mk);
     });
 
-  }, [userLocation, schedules]);
+  }, [mapReady, userLocation, schedules]); // ★ mapReady 추가
 
   // =============================
   // 날짜 하이라이트
