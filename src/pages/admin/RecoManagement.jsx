@@ -10,9 +10,14 @@ import {
 
 // Icons
 import {
+  FaFire, FaTags, FaSyncAlt, FaSlidersH, FaChartLine
+} from "react-icons/fa";
+
+import {
   FaBrain, FaChartLine, FaMapMarkerAlt, FaMagnet, FaTags,
   FaSyncAlt, FaChartBar, FaCompass, FaSlidersH, FaFire
 } from "react-icons/fa";
+
 
 const RecoManagement = () => {
 
@@ -46,15 +51,6 @@ const RecoManagement = () => {
   };
 
   // -------------------------
-  // 시연용 점수 시뮬레이션 함수
-  // -------------------------
-  function simulateScore(baseScore, weight) {
-    // weight(0~1)에 따라 ±20% 변화
-    const factor = 1 + (weight - 0.5) * 0.4;
-    return +(baseScore * factor).toFixed(2);
-  }
-
-  // -------------------------
   // 인기 기반 추천
   // -------------------------
   const loadPopular = async () => {
@@ -81,7 +77,7 @@ const RecoManagement = () => {
   };
 
   // -------------------------
-  // 태그 기반 추천
+  // 🏷 태그 기반 추천
   // -------------------------
   const loadTag = async () => {
     try {
@@ -108,24 +104,15 @@ const RecoManagement = () => {
 
   // -------------------------
   // 추천 다시 불러오기 + 히스토리 추가
-  // (⭐ 시연용 점수 변화가 들어간 핵심 부분)
   // -------------------------
   const refreshAll = async () => {
     const pop = await loadPopular();
     const tag = await loadTag();
 
-    // 원래 점수
-    const rawPopScore = avg(pop.map((g) => g.finalScore));
-    const rawTagScore = avg(tag.map((g) => g.finalScore));
-
-    // ⭐ 시뮬레이션 적용
-    const simulatedPopScore = simulateScore(rawPopScore, popWeight);
-    const simulatedTagScore = simulateScore(rawTagScore, alpha);
-
     const newItem = {
       time: new Date().toLocaleTimeString(),
-      popScore: simulatedPopScore,
-      tagScore: simulatedTagScore,
+      popScore: avg(pop.map((g) => g.finalScore)),
+      tagScore: avg(tag.map((g) => g.finalScore)),
     };
 
     setHistory((prev) => [...prev.slice(-9), newItem]); // 최대 10개 유지
@@ -136,7 +123,7 @@ const RecoManagement = () => {
   }, []);
 
   // -------------------------
-  // Bar Chart 데이터
+  // Bar Chart 데이터 구성
   // -------------------------
   const barData = [
     { name: "그룹 수", popular: popularData.length, tag: tagData.length },
@@ -146,7 +133,7 @@ const RecoManagement = () => {
   ];
 
   // -------------------------
-  // 레이더 차트 데이터
+  // 레이더 차트 데이터 구성
   // -------------------------
   const radarData = [
     {
@@ -178,7 +165,9 @@ const RecoManagement = () => {
         추천 알고리즘 관리 및 모니터링
       </h2>
 
-      {/* 가중치 패널 */}
+      {/* ======================================================= */}
+      {/* 가중치 설정 패널 */}
+      {/* ======================================================= */}
       <div className="card p-4 mb-4 shadow-sm">
 
         <h5 className="fw-bold mb-4 d-flex align-items-center">
@@ -228,6 +217,7 @@ const RecoManagement = () => {
 
         </div>
 
+        {/* 새로고침 버튼 */}
         <button className="btn refresh-btn mt-3" onClick={refreshAll}>
           <FaSyncAlt className="me-2" /> 새로고침 / 재계산
         </button>
@@ -241,14 +231,23 @@ const RecoManagement = () => {
               font-weight: bold;
               color: white;
               background: linear-gradient(90deg, #4c6ef5, #15aabf);
+              box-shadow: 0px 3px 10px rgba(0,0,0,0.15);
               transition: all 0.2s ease;
+            }
+            .refresh-btn:hover {
+              transform: translateY(-2px);
+            }
+            .refresh-btn:active {
+              transform: scale(0.95);
             }
           `}
         </style>
 
       </div>
 
+      {/* ======================================================= */}
       {/* 라인 차트 */}
+      {/* ======================================================= */}
       <div className="card p-3 mb-4 shadow-sm">
         <h5 className="fw-bold d-flex align-items-center">
           <FaChartLine className="me-2 text-primary" /> 점수 변화 모니터링
@@ -269,7 +268,9 @@ const RecoManagement = () => {
         </div>
       </div>
 
+      {/* ======================================================= */}
       {/* 바 차트 */}
+      {/* ======================================================= */}
       <div className="card p-3 mb-4 shadow-sm">
         <h5 className="fw-bold d-flex align-items-center">
           <FaChartBar className="me-2 text-primary" />
@@ -291,7 +292,9 @@ const RecoManagement = () => {
         </div>
       </div>
 
-      {/* 레이더 차트 */}
+      {/* ======================================================= */}
+      {/* 🧭 레이더 차트 */}
+      {/* ======================================================= */}
       <div className="card p-3 shadow-sm">
         <h5 className="fw-bold d-flex align-items-center">
           <FaCompass className="me-2 text-primary" />
@@ -311,7 +314,6 @@ const RecoManagement = () => {
           </ResponsiveContainer>
         </div>
       </div>
-
     </div>
   );
 };
