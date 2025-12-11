@@ -197,7 +197,7 @@ const MainPage = () => {
 
 
   // ===================================================================
-  // 2) Google 지도 초기화 — HOME(/main) 들어올 때마다 1번 생성
+  // 2) Google 지도 초기화 — HOME 돌아올 때도 항상 재생성되도록 수정
   // ===================================================================
   useEffect(() => {
     if (location.pathname !== "/main") return;
@@ -206,17 +206,21 @@ const MainPage = () => {
     const container = mapContainerRef.current;
     if (!container) return;
 
-    // 지도 이미 있으면 재생성 금지
-    if (googleMapRef.current) return;
+    // ★ 기존 지도 DOM 완전 초기화
+    container.innerHTML = "";
+    googleMapRef.current = null;
 
-    // 지도 첫 생성 — 서울로 생성해도 OK (userLocation 들어오면 아래에서 이동시킴)
+    // ★ userLocation이 있다면 사용자 위치로 생성, 없으면 서울
+    const center = userLocation || { lat: 37.5665, lng: 126.9780 };
+
     googleMapRef.current = new window.google.maps.Map(container, {
-      center: { lat: 37.5665, lng: 126.9780 },
-      zoom: 13,
+      center,
+      zoom: userLocation ? 14 : 13,
     });
 
-    console.log("Google Map CREATED");
-  }, [location.pathname]);
+    console.log("🌍 Google Map CREATED");
+
+  }, [location.pathname, userLocation]);
 
 
   // ===================================================================
@@ -233,17 +237,13 @@ const MainPage = () => {
     // 🔵 내 위치 마커
     // -------------------------------
     if (userLocation) {
-      const myMarker = new window.google.maps.Marker({
+      const m = new window.google.maps.Marker({
         position: userLocation,
         map: googleMapRef.current,
         icon: "https://maps.google.com/mapfiles/ms/icons/blue-dot.png",
       });
-
-      markerRefs.current.push(myMarker);
-
-      // ⭐ 지도 처음 생성된 뒤 userLocation 들어오면 중심 이동
+      markerRefs.current.push(m);
       googleMapRef.current.setCenter(userLocation);
-      googleMapRef.current.setZoom(14);
     }
 
     // -------------------------------
@@ -252,21 +252,18 @@ const MainPage = () => {
     schedules.forEach((s) => {
       if (!s.lat || !s.lng) return;
 
-      const marker = new window.google.maps.Marker({
+      const mk = new window.google.maps.Marker({
         position: { lat: s.lat, lng: s.lng },
         map: googleMapRef.current,
         icon: "https://maps.google.com/mapfiles/ms/icons/red-dot.png",
       });
 
-      const infowindow = new window.google.maps.InfoWindow({
+      const info = new window.google.maps.InfoWindow({
         content: `<div style="padding:5px;">${s.groupTitle}</div>`,
       });
 
-      marker.addListener("click", () =>
-        infowindow.open(googleMapRef.current, marker)
-      );
-
-      markerRefs.current.push(marker);
+      mk.addListener("click", () => info.open(googleMapRef.current, mk));
+      markerRefs.current.push(mk);
     });
 
   }, [userLocation, schedules]);
