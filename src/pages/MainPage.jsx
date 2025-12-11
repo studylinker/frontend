@@ -162,15 +162,38 @@ const MainPage = () => {
   // 1) 사용자 GPS 가져오기
   // -----------------------------------
   useEffect(() => {
+    if (!navigator.geolocation) {
+      console.error("❌ Geolocation 지원 안함");
+      return;
+    }
+
     navigator.geolocation.getCurrentPosition(
-      (pos) =>
+      (pos) => {
+        console.log("📍 GPS 성공:", pos.coords.latitude, pos.coords.longitude);
+
         setUserLocation({
           lat: pos.coords.latitude,
           lng: pos.coords.longitude,
-        }),
-      (err) => console.error("GPS 실패:", err)
+        });
+      },
+      (err) => {
+        console.error("❌ GPS 실패:", err);
+
+        // 🚨 실패 시 fallback
+        // 서울 대신 아주 약한 fallback 만 줌 (GPS 안 될 때만)
+        setUserLocation({
+          lat: 37.5665,
+          lng: 126.9780,
+        });
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 5000,
+        maximumAge: 0,
+      }
     );
   }, []);
+
 
 
   // ===================================================================
