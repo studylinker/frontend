@@ -184,6 +184,15 @@ const MyPage = () => {
               내 정보 수정
             </button>
             <button
+              className="btn btn-outline-secondary me-2"
+              onClick={() => {
+                localStorage.removeItem("token");   // 토큰 삭제
+                navigate("/login");                 // 로그인 페이지로 이동
+              }}
+            >
+              로그아웃
+            </button>
+            <button
               className="btn btn-outline-danger"
               onClick={handleDeleteAccount}
             >
