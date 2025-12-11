@@ -50,6 +50,7 @@ const MainPage = () => {
   const googleMapRef = useRef(null); 
   const markerRefs = useRef([]); 
   const [mapReady, setMapReady] = useState(false);
+  const [mapRefresh, setMapRefresh] = useState(0);
 
   // 현재 사용자 위치
   const [userLocation, setUserLocation] = useState(null);
@@ -159,15 +160,10 @@ const MainPage = () => {
     checkLeader();
   }, [userId]);
 
-  // -----------------------------------
+  // ===================================================================
   // 1) 사용자 GPS 가져오기
-  // -----------------------------------
+  // ===================================================================
   useEffect(() => {
-    if (!navigator.geolocation) {
-      console.error("❌ Geolocation 지원 안함");
-      return;
-    }
-
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         console.log("📍 GPS 성공:", pos.coords.latitude, pos.coords.longitude);
@@ -179,23 +175,10 @@ const MainPage = () => {
       },
       (err) => {
         console.error("❌ GPS 실패:", err);
-
-        // 🚨 실패 시 fallback
-        // 서울 대신 아주 약한 fallback 만 줌 (GPS 안 될 때만)
-        setUserLocation({
-          lat: 37.5665,
-          lng: 126.9780,
-        });
       },
-      {
-        enableHighAccuracy: true,
-        timeout: 5000,
-        maximumAge: 0,
-      }
+      { enableHighAccuracy: true }
     );
   }, []);
-
-
 
   // ===================================================================
   // 2) Google 지도 초기화 — HOME 돌아올 때도 항상 재생성되도록 수정
@@ -207,11 +190,14 @@ const MainPage = () => {
     const container = mapContainerRef.current;
     if (!container) return;
 
-    // ★ 기존 지도 DOM 완전 초기화
+    // ★ 지도 초기화 시작
+    setMapReady(false);
+
+    // ★ 기존 구글맵 DOM 완전 삭제 (재생성 충돌 방지)
     container.innerHTML = "";
     googleMapRef.current = null;
 
-    // ★ userLocation이 있다면 사용자 위치로 생성, 없으면 서울
+    // 사용자 위치가 있으면 사용자 위치로, 없으면 서울
     const center = userLocation || { lat: 37.5665, lng: 126.9780 };
 
     googleMapRef.current = new window.google.maps.Map(container, {
@@ -220,7 +206,13 @@ const MainPage = () => {
     });
 
     console.log("🌍 Google Map CREATED");
-    setMapReady(true);     // ★ 지도 생성 완료 플래그
+
+    // ★ 지도 생성 완료 → 마커 useEffect를 실행할 준비
+    setMapReady(true);
+
+    // ★ HOME 돌아올 때마다 강제로 마커 useEffect 실행시키도록 함
+    setMapRefresh((v) => v + 1);
+
   }, [location.pathname, userLocation]);
 
 
@@ -229,46 +221,56 @@ const MainPage = () => {
   // ===================================================================
   useEffect(() => {
     if (!googleMapRef.current) return;
-    if (!mapReady) return;   // ★ 지도 준비 안되어 있으면 실행 X
+    if (!mapReady) return;
 
-    // 기존 마커 제거
-    markerRefs.current.forEach((m) => m.setMap(null));
-    markerRefs.current = [];
+    // Google Maps는 생성 직후 마커를 붙이면 무시되는 경우가 많음 → 0ms 비동기로 실행
+    setTimeout(() => {
+      // 기존 마커 제거
+      markerRefs.current.forEach((m) => m.setMap(null));
+      markerRefs.current = [];
 
-    // -------------------------------
-    // 🔵 내 위치 마커
-    // -------------------------------
-    if (userLocation) {
-      const m = new window.google.maps.Marker({
-        position: userLocation,
-        map: googleMapRef.current,
-        icon: "https://maps.google.com/mapfiles/ms/icons/blue-dot.png",
+      // -------------------------------
+      // 🔵 내 위치 마커
+      // -------------------------------
+      if (userLocation) {
+        const myMarker = new window.google.maps.Marker({
+          position: userLocation,
+          map: googleMapRef.current,
+          icon: "https://maps.google.com/mapfiles/ms/icons/blue-dot.png",
+        });
+
+        markerRefs.current.push(myMarker);
+
+        // 지도 중심도 내 위치로
+        googleMapRef.current.setCenter(userLocation);
+      }
+
+      // -------------------------------
+      // 🔴 스터디 일정 마커
+      // -------------------------------
+      schedules.forEach((s) => {
+        if (!s.lat || !s.lng) return;
+
+        const mk = new window.google.maps.Marker({
+          position: { lat: s.lat, lng: s.lng },
+          map: googleMapRef.current,
+          icon: "https://maps.google.com/mapfiles/ms/icons/red-dot.png",
+        });
+
+        const info = new window.google.maps.InfoWindow({
+          content: `<div style="padding:5px;">${s.groupTitle}</div>`,
+        });
+
+        mk.addListener("click", () => info.open(googleMapRef.current, mk));
+
+        markerRefs.current.push(mk);
       });
-      markerRefs.current.push(m);
-      googleMapRef.current.setCenter(userLocation);
-    }
 
-    // -------------------------------
-    // 🔴 스터디 일정 마커
-    // -------------------------------
-     schedules.forEach((s) => {
-      if (!s.lat || !s.lng) return;
+      console.log("📍 마커 갱신 완료!");
 
-      const mk = new window.google.maps.Marker({
-        position: { lat: s.lat, lng: s.lng },
-        map: googleMapRef.current,
-        icon: "https://maps.google.com/mapfiles/ms/icons/red-dot.png",
-      });
+    }, 0);
 
-      const info = new window.google.maps.InfoWindow({
-        content: `<div style="padding:5px;">${s.groupTitle}</div>`,
-      });
-
-      mk.addListener("click", () => info.open(googleMapRef.current, mk));
-      markerRefs.current.push(mk);
-    });
-
-  }, [mapReady, userLocation, schedules]); // ★ mapReady 추가
+  }, [mapReady, userLocation, schedules, mapRefresh]);  // ★ mapRefresh 추가
 
   // =============================
   // 날짜 하이라이트
