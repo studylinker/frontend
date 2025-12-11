@@ -174,43 +174,33 @@ const MainPage = () => {
 
 
   // ===================================================================
-  // 2) Google 지도 초기화 — ★ HOME(/main) 들어올 때마다 1번 생성
+  // 2) Google 지도 초기화 — HOME(/main) 들어올 때마다 1번 생성
   // ===================================================================
   useEffect(() => {
-    // HOME 페이지가 아닐 때 → 지도 생성 X
     if (location.pathname !== "/main") return;
-
-    // Google Maps 로드되었는지 확인
     if (!window.google || !window.google.maps) return;
 
     const container = mapContainerRef.current;
     if (!container) return;
 
-    // 기존 지도 있으면 재생성 방지
-    if (!googleMapRef.current) {
-      googleMapRef.current = new window.google.maps.Map(container, {
-        center: { lat: 37.5665, lng: 126.9780 },
-        zoom: 13,
-      });
-      console.log("✅ Google Map CREATED");
-    }
+    // 지도 이미 있으면 재생성 금지
+    if (googleMapRef.current) return;
 
-    // -------------------------------
-    // cleanup → HOME 페이지 벗어나면 map을 비움
-    // -------------------------------
-    return () => {
-      console.log("🧹 Google Map CLEANED (HOME OUT)");
-      googleMapRef.current = null;   // ← 중요!
-    };
-  }, [location.pathname]); // ← HOME 들어올 때만 실행됨
+    // 지도 첫 생성 — 서울로 생성해도 OK (userLocation 들어오면 아래에서 이동시킴)
+    googleMapRef.current = new window.google.maps.Map(container, {
+      center: { lat: 37.5665, lng: 126.9780 },
+      zoom: 13,
+    });
 
+    console.log("Google Map CREATED");
+  }, [location.pathname]);
 
 
   // ===================================================================
-  // 3) 마커 갱신 — 지도는 유지하고 마커만 바뀜
+  // 3) 내 위치 + 일정 마커 갱신
   // ===================================================================
   useEffect(() => {
-    if (!googleMapRef.current) return; // 지도 없으면 실행 X
+    if (!googleMapRef.current) return;
 
     // 기존 마커 제거
     markerRefs.current.forEach((m) => m.setMap(null));
@@ -227,7 +217,10 @@ const MainPage = () => {
       });
 
       markerRefs.current.push(myMarker);
+
+      // ⭐ 지도 처음 생성된 뒤 userLocation 들어오면 중심 이동
       googleMapRef.current.setCenter(userLocation);
+      googleMapRef.current.setZoom(14);
     }
 
     // -------------------------------
@@ -252,6 +245,7 @@ const MainPage = () => {
 
       markerRefs.current.push(marker);
     });
+
   }, [userLocation, schedules]);
 
   // =============================
