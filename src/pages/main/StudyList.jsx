@@ -365,13 +365,9 @@ useEffect(() => {
                   <p><strong>주소:</strong> {selectedAddress}</p>
 
                   <div className="mt-2">
-                    <strong>카테고리:</strong>
+                    <strong>카테고리:</strong>{" "}
                     {selectedGroup.categoryList.map((tag, idx) => (
-                      <span
-                        key={idx}
-                        className="badge me-2"
-                        style={{ backgroundColor: "#bfb9b9", color: "#fff" }}
-                      >
+                      <span key={idx} className="badge bg-secondary me-1">
                         #{tag}
                       </span>
                     ))}

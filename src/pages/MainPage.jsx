@@ -46,9 +46,11 @@ const MainPage = () => {
   const [selectedDate, setSelectedDate] = useState(new Date());
 
   // 지도
-  const mapContainerRef = useRef(null);       // 지도 DOM
-  const googleMapRef = useRef(null);          // 지도 객체
-  const markerRefs = useRef([]);              // 지도 마커들
+  const mapContainerRef = useRef(null); 
+  const googleMapRef = useRef(null); 
+  const markerRefs = useRef([]); 
+  const [mapReady, setMapReady] = useState(false);
+  const [mapRefresh, setMapRefresh] = useState(0);
 
   // 현재 사용자 위치
   const [userLocation, setUserLocation] = useState(null);
@@ -158,101 +160,117 @@ const MainPage = () => {
     checkLeader();
   }, [userId]);
 
-  // -----------------------------------
+  // ===================================================================
   // 1) 사용자 GPS 가져오기
-  // -----------------------------------
+  // ===================================================================
   useEffect(() => {
     navigator.geolocation.getCurrentPosition(
-      (pos) =>
+      (pos) => {
+        console.log("📍 GPS 성공:", pos.coords.latitude, pos.coords.longitude);
+
         setUserLocation({
           lat: pos.coords.latitude,
           lng: pos.coords.longitude,
-        }),
-      (err) => console.error("GPS 실패:", err)
+        });
+      },
+      (err) => {
+        console.error("❌ GPS 실패:", err);
+      },
+      { enableHighAccuracy: true }
     );
   }, []);
 
-
   // ===================================================================
-  // 2) Google 지도 초기화 — ★ HOME(/main) 들어올 때마다 1번 생성
+  // 2) Google 지도 초기화 — HOME 돌아올 때도 항상 재생성되도록 수정
   // ===================================================================
   useEffect(() => {
-    // HOME 페이지가 아닐 때 → 지도 생성 X
     if (location.pathname !== "/main") return;
-
-    // Google Maps 로드되었는지 확인
     if (!window.google || !window.google.maps) return;
 
     const container = mapContainerRef.current;
     if (!container) return;
 
-    // 기존 지도 있으면 재생성 방지
-    if (!googleMapRef.current) {
-      googleMapRef.current = new window.google.maps.Map(container, {
-        center: { lat: 37.5665, lng: 126.9780 },
-        zoom: 13,
-      });
-      console.log("✅ Google Map CREATED");
-    }
+    // ★ 지도 초기화 시작
+    setMapReady(false);
 
-    // -------------------------------
-    // cleanup → HOME 페이지 벗어나면 map을 비움
-    // -------------------------------
-    return () => {
-      console.log("🧹 Google Map CLEANED (HOME OUT)");
-      googleMapRef.current = null;   // ← 중요!
-    };
-  }, [location.pathname]); // ← HOME 들어올 때만 실행됨
+    // ★ 기존 구글맵 DOM 완전 삭제 (재생성 충돌 방지)
+    container.innerHTML = "";
+    googleMapRef.current = null;
 
+    // 사용자 위치가 있으면 사용자 위치로, 없으면 서울
+    const center = userLocation || { lat: 37.5665, lng: 126.9780 };
+
+    googleMapRef.current = new window.google.maps.Map(container, {
+      center,
+      zoom: userLocation ? 14 : 13,
+    });
+
+    console.log("🌍 Google Map CREATED");
+
+    // ★ 지도 생성 완료 → 마커 useEffect를 실행할 준비
+    setMapReady(true);
+
+    // ★ HOME 돌아올 때마다 강제로 마커 useEffect 실행시키도록 함
+    setMapRefresh((v) => v + 1);
+
+  }, [location.pathname, userLocation]);
 
 
   // ===================================================================
-  // 3) 마커 갱신 — 지도는 유지하고 마커만 바뀜
+  // 3) 내 위치 + 일정 마커 갱신
   // ===================================================================
   useEffect(() => {
-    if (!googleMapRef.current) return; // 지도 없으면 실행 X
+    if (!googleMapRef.current) return;
+    if (!mapReady) return;
 
-    // 기존 마커 제거
-    markerRefs.current.forEach((m) => m.setMap(null));
-    markerRefs.current = [];
+    // Google Maps는 생성 직후 마커를 붙이면 무시되는 경우가 많음 → 0ms 비동기로 실행
+    setTimeout(() => {
+      // 기존 마커 제거
+      markerRefs.current.forEach((m) => m.setMap(null));
+      markerRefs.current = [];
 
-    // -------------------------------
-    // 🔵 내 위치 마커
-    // -------------------------------
-    if (userLocation) {
-      const myMarker = new window.google.maps.Marker({
-        position: userLocation,
-        map: googleMapRef.current,
-        icon: "https://maps.google.com/mapfiles/ms/icons/blue-dot.png",
+      // -------------------------------
+      // 🔵 내 위치 마커
+      // -------------------------------
+      if (userLocation) {
+        const myMarker = new window.google.maps.Marker({
+          position: userLocation,
+          map: googleMapRef.current,
+          icon: "https://maps.google.com/mapfiles/ms/icons/blue-dot.png",
+        });
+
+        markerRefs.current.push(myMarker);
+
+        // 지도 중심도 내 위치로
+        googleMapRef.current.setCenter(userLocation);
+      }
+
+      // -------------------------------
+      // 🔴 스터디 일정 마커
+      // -------------------------------
+      schedules.forEach((s) => {
+        if (!s.lat || !s.lng) return;
+
+        const mk = new window.google.maps.Marker({
+          position: { lat: s.lat, lng: s.lng },
+          map: googleMapRef.current,
+          icon: "https://maps.google.com/mapfiles/ms/icons/red-dot.png",
+        });
+
+        const info = new window.google.maps.InfoWindow({
+          content: `<div style="padding:5px;">${s.groupTitle}</div>`,
+        });
+
+        mk.addListener("click", () => info.open(googleMapRef.current, mk));
+
+        markerRefs.current.push(mk);
       });
 
-      markerRefs.current.push(myMarker);
-      googleMapRef.current.setCenter(userLocation);
-    }
+      console.log("📍 마커 갱신 완료!");
 
-    // -------------------------------
-    // 🔴 스터디 일정 마커
-    // -------------------------------
-    schedules.forEach((s) => {
-      if (!s.lat || !s.lng) return;
+    }, 0);
 
-      const marker = new window.google.maps.Marker({
-        position: { lat: s.lat, lng: s.lng },
-        map: googleMapRef.current,
-        icon: "https://maps.google.com/mapfiles/ms/icons/red-dot.png",
-      });
-
-      const infowindow = new window.google.maps.InfoWindow({
-        content: `<div style="padding:5px;">${s.groupTitle}</div>`,
-      });
-
-      marker.addListener("click", () =>
-        infowindow.open(googleMapRef.current, marker)
-      );
-
-      markerRefs.current.push(marker);
-    });
-  }, [userLocation, schedules]);
+  }, [mapReady, userLocation, schedules, mapRefresh]);  // ★ mapRefresh 추가
 
   // =============================
   // 날짜 하이라이트
@@ -521,10 +539,10 @@ const MainPage = () => {
         </div>
       </div>
 
-      {/* 일정 생성 모달 */}
+      {/* 일정 생성/수정 모달 */}
       {showCreateModal && (
         <ScheduleCreateModal
-          mode={createMode}
+          mode={modalMode === "update" ? "update" : createMode}
           leaderGroups={leaderGroups}
           baseDate={
             modalMode === "update"
@@ -532,9 +550,15 @@ const MainPage = () => {
               : selectedDate.toLocaleDateString("en-CA")
           }
           scheduleData={editScheduleData}
-          onClose={() => setShowCreateModal(false)}
+          onClose={() => {
+            setShowCreateModal(false);
+            setModalMode("create");   // 모드 초기화
+            setEditScheduleData(null);
+          }}
           onSuccess={() => {
             setShowCreateModal(false);
+            setModalMode("create");
+            setEditScheduleData(null);
             loadSchedules();
           }}
         />

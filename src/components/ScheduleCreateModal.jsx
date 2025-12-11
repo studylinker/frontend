@@ -23,6 +23,8 @@ const ScheduleCreateModal = ({
 
   const [date, setDate] = useState(baseDate || "");
   const [time, setTime] = useState("");
+  const [endTime, setEndTime] = useState("");
+
   
   const [selectedGroupId, setSelectedGroupId] = useState(groupId);
 
@@ -32,15 +34,22 @@ const ScheduleCreateModal = ({
   useEffect(() => {
     if (isUpdate && scheduleData) {
       const start =
-        scheduleData.start_time ?? // snake_case 지원
-        scheduleData.startTime ??  // camelCase 지원
+        scheduleData.start_time ??
+        scheduleData.startTime ??
         null;
 
-      setTitle(scheduleData.title);
+      const end =
+        scheduleData.end_time ??
+        scheduleData.endTime ??
+        null;
+
+      setTitle(scheduleData.title || "");
       setDescription(scheduleData.description || "");
       setLocation(scheduleData.location || "");
+
       setDate(start ? start.slice(0, 10) : "");
       setTime(start ? start.slice(11, 16) : "");
+      setEndTime(end ? end.slice(11, 16) : "");
     }
   }, [isUpdate, scheduleData]);
 
@@ -55,16 +64,18 @@ const ScheduleCreateModal = ({
       return;
     }
 
-    const finalTime = time || "00:00";
-    const startTime = `${date}T${finalTime}`;
-    const endTime = `${date}T${finalTime}`;
+    const startFinal = time || "00:00";
+    const endFinal = endTime || startFinal;
+
+    const startTime = `${date}T${startFinal}`;
+    const endTimeValue = `${date}T${endFinal}`;
 
     const body = {
       title,
       description,
       location,
       startTime,
-      endTime,
+      endTime:endTimeValue,
     };
 
     try {
@@ -173,12 +184,19 @@ const ScheduleCreateModal = ({
                 </option>
               ))}
             </select>
-
+            {/* 시작 시간 */}
             <input
               type="time"
               className="form-control mb-2"
               value={time}
               onChange={(e) => setTime(e.target.value)}
+            />
+            {/* 종료 시간 */}
+            <input
+              type="time"
+              className="form-control mb-2"
+              value={endTime}
+              onChange={(e) => setEndTime(e.target.value)}
             />
           </>
         )}

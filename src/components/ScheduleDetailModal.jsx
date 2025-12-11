@@ -102,12 +102,23 @@ const ScheduleDetailModal = ({ scheduleId, onClose, userId, onOpenAttendance }) 
               {get(schedule, "startTime", "start_time")?.slice(0, 10)}
             </p>
 
-            {schedule.description && (
-              <p><strong>내용:</strong> {schedule.description}</p>
+            {(schedule.group_id ?? schedule.groupId) &&
+            (schedule.start_time || schedule.startTime) && (
+              <p>
+                <strong>시간:</strong>{" "}
+                {(schedule.start_time ?? schedule.startTime).slice(11, 16)}
+                {(schedule.end_time ?? schedule.endTime)
+                  ? ` ~ ${(schedule.end_time ?? schedule.endTime).slice(11, 16)}`
+                  : ""}
+              </p>
             )}
 
             {schedule.location && (
               <p><strong>장소:</strong> {schedule.location}</p>
+            )}
+
+            {schedule.description && (
+              <p><strong>설명:</strong> {schedule.description}</p>
             )}
 
             {isStudySchedule ? (

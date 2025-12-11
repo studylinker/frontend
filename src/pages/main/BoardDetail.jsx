@@ -16,7 +16,6 @@ const BoardDetail = () => {
   const [userId, setUserId] = useState(null);
   const [groupInfo, setGroupInfo] = useState(null);
 
-  // ⭐ 추가된 state: 리뷰 평점 정보
   const [ratingInfo, setRatingInfo] = useState(null);
 
   // 로그인 사용자 불러오기
@@ -173,7 +172,7 @@ const BoardDetail = () => {
             </div>
           )}
 
-          {/* 수정/삭제/신고 버튼 */}
+          {/* 수정/삭제 버튼: 작성자만 */}
           {post.leaderId === userId && (
             <div className="mt-3">
               <button
@@ -191,8 +190,11 @@ const BoardDetail = () => {
               >
                 삭제
               </button>
-
-              {/* 신고 버튼 */}
+            </div>
+          )}
+          
+          {/* 신고 버튼 */}
+          <div className="mt-2">
               <button
                 className="btn"
                 style={{
@@ -220,7 +222,6 @@ const BoardDetail = () => {
                 🚨 신고
               </button>
             </div>
-          )}
         </div>
       </div>
 

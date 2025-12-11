@@ -77,6 +77,18 @@ const RecommendGroups = () => {
     );
   }, []);
 
+  // ======================================================
+  // 🔵 1-2) userLocation 변하면 지도 중심을 내 위치로 이동시키기 (중요!)
+  // ======================================================
+  useEffect(() => {
+    if (!googleMapRef.current) return;
+    if (!userLocation) return;
+
+    googleMapRef.current.setCenter(userLocation);
+    googleMapRef.current.setZoom(14);
+
+    console.log("📍 추천 지도 - 내 위치로 이동");
+  }, [userLocation]);
 
   // ======================================================
   // 2) 추천 API 호출
@@ -180,8 +192,8 @@ const RecommendGroups = () => {
     if (!container) return;
 
     googleMapRef.current = new window.google.maps.Map(container, {
-      center: { lat: 37.5665, lng: 126.9780 },
-      zoom: 13,
+      center: userLocation || { lat: 37.5665, lng: 126.9780 },   // ★ 수정: 내 위치로 초기화
+      zoom: userLocation ? 14 : 13,                            // ★ 수정
     });
 
     console.log("RecommendGroups Google Map CREATED");
@@ -192,7 +204,7 @@ const RecommendGroups = () => {
       googleMapRef.current = null;
     };
 
-  }, [location.pathname]);  // 페이지 이동 시 감지되도록 수정된 의존성
+  }, [location.pathname, userLocation]);  // ★ userLocation 추가
 
 
 
@@ -206,8 +218,20 @@ const RecommendGroups = () => {
     markersRef.current.forEach((m) => m.setMap(null));
     markersRef.current = [];
 
+    // 🔵 내 위치 마커 추가
+    if (userLocation) {
+      const myMarker = new window.google.maps.Marker({
+        position: userLocation,
+        map: googleMapRef.current,
+        icon: "https://maps.google.com/mapfiles/ms/icons/blue-dot.png",
+      });
+
+      markersRef.current.push(myMarker);
+    }
+
     if (groups.length === 0) return;
 
+    // 지도 중심 자동 조정 (근처 스터디 기준)
     const first = groups[0];
     const lat = first.lat || first.latitude;
     const lng = first.lng || first.longitude;
@@ -218,7 +242,7 @@ const RecommendGroups = () => {
       googleMapRef.current.setZoom(zoom);
     }
 
-    // 추천 스터디 마커 출력
+    // 🔴 추천 스터디 마커 출력
     groups.forEach((g) => {
       const glat = g.lat || g.latitude;
       const glng = g.lng || g.longitude;
@@ -233,7 +257,7 @@ const RecommendGroups = () => {
 
       markersRef.current.push(marker);
     });
-  }, [groups, radius]);
+  }, [groups, radius, userLocation]);   // ★ userLocation 추가
 
 
   // ======================================================
