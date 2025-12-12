@@ -83,7 +83,7 @@ const AdminPage = () => {
 
               {/* 6. 시스템/문의 관리 */}
               <li className="list-group-item">
-                <Link to="/admin/system" className="nav-link">⚙️ 시스템/문의 관리</Link>
+                <Link to="/admin/system" className="nav-link">⚙️ 시스템/알림 관리</Link>
               </li>
             </ul>
           </div>
