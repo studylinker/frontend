@@ -44,59 +44,81 @@ const GroupEditPage = () => {
   if (loading && !group) return <p>그룹 정보를 불러오는 중...</p>;
 
   return (
-    <div className="container mt-4">
-      <h2>📝 그룹 수정 (ID: {group.groupId})</h2>
+    <div className="container mt-4 text-start">
+      <h2 className="mb-4">📝 그룹 수정 (ID: {group.groupId})</h2>
 
       {/* 그룹명 */}
-      <label className="form-label">그룹명</label>
-      <input
-        type="text"
-        className="form-control mb-3"
-        value={group.title}
-        onChange={(e) => setGroup({ ...group, title: e.target.value })}
-      />
+      <div className="mb-3 text-start">
+        <label className="form-label fw-semibold">그룹명</label>
+        <input
+          type="text"
+          className="form-control"
+          value={group.title}
+          onChange={(e) => setGroup({ ...group, title: e.target.value })}
+        />
+      </div>
 
       {/* 설명 */}
-      <label className="form-label">설명</label>
-      <textarea
-        className="form-control mb-3"
-        rows={3}
-        value={group.description || ""}
-        onChange={(e) => setGroup({ ...group, description: e.target.value })}
-      />
+      <div className="mb-3 text-start">
+        <label className="form-label fw-semibold">설명</label>
+        <textarea
+          className="form-control"
+          rows={3}
+          value={group.description || ""}
+          onChange={(e) =>
+            setGroup({ ...group, description: e.target.value })
+          }
+        />
+      </div>
 
       {/* 카테고리 */}
-      <label className="form-label">카테고리</label>
-      <input
-        type="text"
-        className="form-control mb-3"
-        value={group.category}
-        onChange={(e) => setGroup({ ...group, category: e.target.value })}
-      />
+      <div className="mb-3 text-start">
+        <label className="form-label fw-semibold">카테고리</label>
+        <input
+          type="text"
+          className="form-control"
+          value={group.category}
+          onChange={(e) =>
+            setGroup({ ...group, category: e.target.value })
+          }
+        />
+      </div>
 
       {/* 최대 인원 */}
-      <label className="form-label">최대 인원 (maxMembers)</label>
-      <input
-        type="number"
-        className="form-control mb-3"
-        value={group.maxMembers}
-        onChange={(e) =>
-          setGroup({ ...group, maxMembers: Number(e.target.value) })
-        }
-      />
+      <div className="mb-3 text-start">
+        <label className="form-label fw-semibold">
+          최대 인원 (maxMembers)
+        </label>
+        <input
+          type="number"
+          className="form-control"
+          value={group.maxMembers}
+          onChange={(e) =>
+            setGroup({
+              ...group,
+              maxMembers: Number(e.target.value)
+            })
+          }
+        />
+      </div>
 
       {/* 상태 */}
-      <label className="form-label">상태</label>
-      <select
-        className="form-select mb-3"
-        value={group.status}
-        onChange={(e) => setGroup({ ...group, status: e.target.value })}
-      >
-        <option value="Active">활성</option>
-        <option value="Inactive">비활성</option>
-        <option value="Pending">대기중</option>
-      </select>
+      <div className="mb-4 text-start">
+        <label className="form-label fw-semibold">상태</label>
+        <select
+          className="form-select"
+          value={group.status}
+          onChange={(e) =>
+            setGroup({ ...group, status: e.target.value })
+          }
+        >
+          <option value="Active">활성</option>
+          <option value="Inactive">비활성</option>
+          <option value="Pending">대기중</option>
+        </select>
+      </div>
 
+      {/* 버튼 */}
       <div className="d-flex justify-content-end">
         <button
           className="btn btn-secondary me-2"

@@ -41,7 +41,6 @@ const PostEditPage = () => {
       title: post.title,
       content: post.content,
       type: post.type
-      // 필요한 값만 PATCH 방식으로 보냄
     })
       .then(() => {
         alert(`게시글 "${post.title}" 수정 완료`);
@@ -56,48 +55,57 @@ const PostEditPage = () => {
   if (!post) return <p>게시글을 불러오는 중...</p>;
 
   return (
-    <div className="container mt-4">
-      <h2>📝 게시글 수정 (ID: {id})</h2>
+    <div className="container mt-4 text-start">
+      <h2 className="mb-4">📝 게시글 수정 (ID: {id})</h2>
 
       {/* 제목 */}
-      <label className="form-label">제목</label>
-      <input
-        type="text"
-        className="form-control mb-3"
-        value={post.title}
-        onChange={(e) => setPost({ ...post, title: e.target.value })}
-      />
+      <div className="mb-3 text-start">
+        <label className="form-label fw-semibold">제목</label>
+        <input
+          type="text"
+          className="form-control"
+          value={post.title}
+          onChange={(e) => setPost({ ...post, title: e.target.value })}
+        />
+      </div>
 
       {/* 작성자 leaderId */}
-      <label className="form-label">작성자 (leaderId)</label>
-      <input
-        type="text"
-        className="form-control mb-3"
-        value={post.leaderId}
-        disabled
-      />
+      <div className="mb-3 text-start">
+        <label className="form-label fw-semibold">작성자 (leaderId)</label>
+        <input
+          type="text"
+          className="form-control"
+          value={post.leaderId}
+          disabled
+        />
+      </div>
 
-      {/* 유형 */}
-      <label className="form-label">게시글 유형</label>
-      <select
-        className="form-select mb-3"
-        value={post.type || ""}
-        onChange={(e) => setPost({ ...post, type: e.target.value })}
-      >
-        <option value="FREE">자유글</option>
-        <option value="REVIEW">스터디 후기</option>
-        <option value="NOTICE">📌 공지사항</option>
-      </select>
+      {/* 게시글 유형 */}
+      <div className="mb-3 text-start">
+        <label className="form-label fw-semibold">게시글 유형</label>
+        <select
+          className="form-select"
+          value={post.type || ""}
+          onChange={(e) => setPost({ ...post, type: e.target.value })}
+        >
+          <option value="FREE">자유글</option>
+          <option value="REVIEW">스터디 후기</option>
+          <option value="NOTICE">📌 공지사항</option>
+        </select>
+      </div>
 
       {/* 내용 */}
-      <label className="form-label">내용</label>
-      <textarea
-        className="form-control mb-3"
-        rows="8"
-        value={post.content}
-        onChange={(e) => setPost({ ...post, content: e.target.value })}
-      />
+      <div className="mb-4 text-start">
+        <label className="form-label fw-semibold">내용</label>
+        <textarea
+          className="form-control"
+          rows="8"
+          value={post.content}
+          onChange={(e) => setPost({ ...post, content: e.target.value })}
+        />
+      </div>
 
+      {/* 버튼 */}
       <div className="d-flex justify-content-end mt-4">
         <button
           className="btn btn-secondary me-2"
