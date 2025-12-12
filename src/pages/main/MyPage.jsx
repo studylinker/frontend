@@ -184,16 +184,27 @@ const MyPage = () => {
               내 정보 수정
             </button>
             <button
-              className="btn btn-outline-secondary me-2"
-              onClick={() => {
-                if (window.confirm("정말 로그아웃 하시겠습니까?")) {
-                  localStorage.removeItem("token");
-                  navigate("/login");
-                }
-              }}
-            >
-              로그아웃
-            </button>
+            className="btn btn-outline-secondary me-2"
+            onClick={async () => {
+              if (!window.confirm("정말 로그아웃 하시겠습니까?")) return;
+
+              try {
+                // 백엔드 로그아웃 API 호출
+                await api.delete("/auth/logout");
+              } catch (err) {
+                console.error("로그아웃 API 오류:", err);
+                // (선택) 실패해도 프론트에서는 로그아웃 진행
+              }
+
+              // 프론트 토큰 제거
+              localStorage.removeItem("token");
+
+              // 로그인 페이지로 이동
+              navigate("/login");
+            }}
+          >
+            로그아웃
+          </button>
             <button
               className="btn btn-outline-danger"
               onClick={handleDeleteAccount}

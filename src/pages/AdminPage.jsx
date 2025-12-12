@@ -2,6 +2,7 @@
 
 import React from "react";
 import { Link, Routes, Route } from "react-router-dom";
+import api from "../api/axios";
 import OpsChart from "./admin/OpsChart";        // 📊 대시보드
 import UserList from "./admin/UserList";        // 👥 사용자 관리
 import GroupList from "./admin/GroupList";      // 📚 스터디 그룹 관리
@@ -24,16 +25,27 @@ const AdminPage = () => {
           <span className="text-light me-3">{adminName}님</span>
 
           <button
-            className="btn btn-outline-light btn-sm"
-            onClick={() => {
-              if (window.confirm("정말 로그아웃 하시겠습니까?")) {
-                localStorage.removeItem("token");
-                window.location.href = "/login";   // navigate 없이 강제 이동
-              }
-            }}
-          >
-            로그아웃
-          </button>
+          className="btn btn-outline-light btn-sm"
+          onClick={async () => {
+            if (!window.confirm("정말 로그아웃 하시겠습니까?")) return;
+
+            try {
+              // 백엔드 로그아웃 API 호출
+              await api.delete("/auth/logout");
+
+            } catch (err) {
+              console.error("로그아웃 API 오류:", err);
+            }
+
+            // 프론트 토큰 제거
+            localStorage.removeItem("token");
+
+            // 로그인 화면으로 이동
+            window.location.href = "/login";
+          }}
+        >
+          로그아웃
+        </button>
         </div>
       </nav>
 
