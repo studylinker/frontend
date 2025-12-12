@@ -31,7 +31,7 @@ const AdminPage = () => {
 
             try {
               // 백엔드 로그아웃 API 호출
-              await api.delete("/auth/logout");
+              await api.post("/auth/logout");
 
             } catch (err) {
               console.error("로그아웃 API 오류:", err);

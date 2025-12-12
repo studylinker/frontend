@@ -190,7 +190,7 @@ const MyPage = () => {
 
               try {
                 // 백엔드 로그아웃 API 호출
-                await api.delete("/auth/logout");
+                await api.post("/auth/logout");
               } catch (err) {
                 console.error("로그아웃 API 오류:", err);
                 // (선택) 실패해도 프론트에서는 로그아웃 진행
