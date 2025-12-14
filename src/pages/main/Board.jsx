@@ -217,6 +217,7 @@ const Board = () => {
                 >
                   <td>공지</td>
                   <td colSpan={2}>{p.title}</td>
+                  <td>{p.type === "NOTICE" ? "관리자" : (p.leaderName || "익명")}</td>
                   <td>{date}</td>
                 </tr>
               );
