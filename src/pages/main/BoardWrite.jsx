@@ -14,7 +14,12 @@ const BoardWrite = ({ defaultType }) => {
 
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
-  const [type, setType] = useState(defaultType || "FREE");
+
+  // ⭐ STUDY 방지: defaultType이 STUDY면 FREE로 강제
+  const safeDefaultType =
+    defaultType === "REVIEW" ? "REVIEW" : "FREE";
+
+  const [type, setType] = useState(safeDefaultType);
 
   const [rating, setRating] = useState(0);
   const [joinedGroups, setJoinedGroups] = useState([]);
@@ -33,7 +38,13 @@ const BoardWrite = ({ defaultType }) => {
 
         setTitle(p.title);
         setContent(p.content);
-        setType(p.type);
+
+        // ⭐ STUDY 방지: 기존 글이 STUDY면 FREE로 치환
+        if (p.type === "REVIEW") {
+          setType("REVIEW");
+        } else {
+          setType("FREE");
+        }
 
         if (p.type === "REVIEW") {
           setSelectedGroupId(p.groupId || "");
@@ -62,7 +73,9 @@ const BoardWrite = ({ defaultType }) => {
 
         for (const g of groups) {
           try {
-            const memRes = await api.get(`/study-groups/${g.groupId}/members/${userId}`);
+            const memRes = await api.get(
+              `/study-groups/${g.groupId}/members/${userId}`
+            );
             if (memRes.data?.status === "APPROVED") {
               myGroups.push(g);
             }
@@ -81,19 +94,21 @@ const BoardWrite = ({ defaultType }) => {
   // ============================
   // 저장 (작성 + 수정)
   // ============================
-  
   const handleSubmit = async (e) => {
     e.preventDefault();
+
     if (!title.trim() || !content.trim()) {
       alert("제목과 내용을 입력하세요.");
       return;
     }
 
-    // 🔹 REVIEW 타입일 때 후기 대상 스터디 선택 필수 체크 (추가)
     if (type === "REVIEW" && !selectedGroupId) {
       alert("후기 대상 스터디를 선택하세요.");
       return;
     }
+
+    // ⭐ STUDY 방지: 전송 직전 한 번 더 안전장치
+    const safeType = type === "REVIEW" ? "REVIEW" : "FREE";
 
     try {
       // -------- 수정 모드 --------
@@ -101,9 +116,8 @@ const BoardWrite = ({ defaultType }) => {
         await api.patch(`/study-posts/${postId}`, {
           title,
           content,
-          type,
-          // 🔹 REVIEW일 때 groupId를 숫자로 변환해서 전송 (수정)
-          groupId: type === "REVIEW" ? Number(selectedGroupId) : null,
+          type: safeType, // ⭐ STUDY 방지
+          groupId: safeType === "REVIEW" ? Number(selectedGroupId) : null,
         });
 
         alert("게시글 수정 완료!");
@@ -115,10 +129,9 @@ const BoardWrite = ({ defaultType }) => {
       const postBody = {
         title,
         content,
-        type,
+        type: safeType, // ⭐ STUDY 방지
         leaderId: userId,
-        // 🔹 REVIEW일 때 groupId를 숫자로 변환해서 전송 (수정)
-        groupId: type === "REVIEW" ? Number(selectedGroupId) : null,
+        groupId: safeType === "REVIEW" ? Number(selectedGroupId) : null,
         maxMembers: 0,
         studyDate: null,
         location: null,
@@ -130,18 +143,16 @@ const BoardWrite = ({ defaultType }) => {
       const newId = postRes.data?.postId;
 
       if (!newId) {
-        alert("게시글 생성 실패: postId 누락");
+        alert("게시글 생성 실패");
         return;
       }
 
-      // 후기(REVIEW)일 때 평점 미입력 방지
-      if (type === "REVIEW" && !rating) {
+      if (safeType === "REVIEW" && !rating) {
         alert("평점을 선택해야 합니다!");
         return;
       }
 
-      // 후기글인 경우 리뷰 추가 생성
-      if (type === "REVIEW") {
+      if (safeType === "REVIEW") {
         await api.post(`/study-posts/${newId}/reviews`, {
           rating,
           content,
@@ -224,7 +235,11 @@ const BoardWrite = ({ defaultType }) => {
 
         <button
           className="btn"
-          style={{ backgroundColor: "#a78bfa", color: "white", fontWeight: "bold" }}
+          style={{
+            backgroundColor: "#a78bfa",
+            color: "white",
+            fontWeight: "bold",
+          }}
         >
           저장
         </button>

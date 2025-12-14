@@ -33,7 +33,6 @@ const Board = () => {
       setAllPosts(list);
       console.log("📌 전체 posts 개수:", list.length);
 
-
       // ⭐ 수정: 탭별 필터링
       const filtered = list.filter((p) => p.type === targetTab);
       setPosts(filtered);
@@ -122,6 +121,13 @@ const Board = () => {
 
   const totalPages = Math.ceil(posts.length / POSTS_PER_PAGE);
 
+  // =============================
+  // ⭐ 공지 상단 고정: NOTICE 글 분리
+  // =============================
+  const noticePosts = allPosts
+    .filter((p) => p.type === "NOTICE") // ⭐ 공지 상단 고정
+    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)); // ⭐ 공지 상단 고정
+
   return (
     <div>
       <h2><strong>게시판</strong></h2>
@@ -190,8 +196,35 @@ const Board = () => {
             </tr>
           </thead>
 
-          {/* ⭐ 수정: currentPosts 사용 */}
           <tbody>
+            {/* =============================
+                ⭐ 공지 상단 고정 영역
+            ============================= */}
+            {noticePosts.map((p) => {
+              const date = p.createdAt ? p.createdAt.slice(0, 10) : "-";
+
+              return (
+                <tr
+                  key={`notice-${p.postId}`}
+                  style={{
+                    cursor: "pointer",
+                    backgroundColor: "#F3E8FF",
+                    fontWeight: "bold",
+                  }}
+                  onClick={() =>
+                    navigate(`/main/board/detail/${p.postId}`)
+                  }
+                >
+                  <td>공지</td>
+                  <td colSpan={2}>{p.title}</td>
+                  <td>{date}</td>
+                </tr>
+              );
+            })}
+
+            {/* =============================
+                ⭐ 일반 게시글 (페이징 대상)
+            ============================= */}
             {currentPosts.map((p, index) => {
               const date = p.createdAt
                 ? p.createdAt.slice(0, 10)
@@ -205,7 +238,6 @@ const Board = () => {
                     navigate(`/main/board/detail/${p.postId}`)
                   }
                 >
-                  {/* ⭐ 수정: 페이지 고려한 No */}
                   <td>{posts.length - (indexOfFirstPost + index)}</td>
 
                   <td>
