@@ -252,7 +252,7 @@ const Board = () => {
                     )}
                   </td>
 
-                  <td>{p.leaderName || "익명"}</td>
+                  <td>{p.type === "NOTICE" ? "관리자" : (p.leaderName || "익명")}</td>
                   <td>{date}</td>
                 </tr>
               );

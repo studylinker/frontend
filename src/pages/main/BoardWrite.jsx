@@ -244,6 +244,7 @@ const BoardWrite = ({ defaultType }) => {
           저장
         </button>
         <button
+          type="button"
           className="btn btn-secondary ms-2"
           onClick={() => navigate("/main/board")}
         >
