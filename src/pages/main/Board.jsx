@@ -31,10 +31,13 @@ const Board = () => {
       list.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
       setAllPosts(list);
+      console.log("📌 전체 posts 개수:", list.length);
+
 
       // ⭐ 수정: 탭별 필터링
       const filtered = list.filter((p) => p.type === targetTab);
       setPosts(filtered);
+      console.log("📌 현재 탭 posts 개수:", filtered.length);
 
       if (targetTab === "REVIEW") {
         fetchGroupTitles(list);
