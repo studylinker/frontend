@@ -9,24 +9,32 @@ const Board = () => {
   const [posts, setPosts] = useState([]);
   const [allPosts, setAllPosts] = useState([]);
   const [keyword, setKeyword] = useState("");
+
+  // ⭐ 수정: 페이지네이션 상태
+  const [currentPage, setCurrentPage] = useState(1);
+  const POSTS_PER_PAGE = 10;
+
   const { user } = useContext(AuthContext);
   const [groupTitles, setGroupTitles] = useState({});
 
   const navigate = useNavigate();
 
   // =============================
-  // 🔹 게시글 전체 조회
+  // 게시글 전체 조회
   // =============================
   const fetchPosts = async (targetTab = tab) => {
     try {
       const res = await api.get("/study-posts");
       const list = Array.isArray(res.data) ? res.data : [];
 
-      // 최신순 정렬 추가
+      // 최신순 정렬
       list.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
       setAllPosts(list);
-      setPosts(list.filter((p) => p.type === targetTab));
+
+      // ⭐ 수정: 탭별 필터링
+      const filtered = list.filter((p) => p.type === targetTab);
+      setPosts(filtered);
 
       if (targetTab === "REVIEW") {
         fetchGroupTitles(list);
@@ -37,22 +45,24 @@ const Board = () => {
   };
 
   // =============================
-  // 최초 렌더링 시 게시판 로딩
+  // 최초 렌더링
   // =============================
   useEffect(() => {
     if (user) fetchPosts("FREE");
   }, [user]);
 
   // =============================
-  // 🔹 탭 변경 시 재조회
+  // 탭 변경 시
   // =============================
   useEffect(() => {
-    if (user) fetchPosts(tab);
+    if (user) {
+      fetchPosts(tab);
+      setCurrentPage(1); // ⭐ 수정: 탭 변경 시 1페이지로
+    }
   }, [tab, user]);
 
-
   // =============================
-  // 🔹 REVIEW 글 → 스터디명 조회
+  // REVIEW → 스터디명 조회
   // =============================
   const fetchGroupTitles = async (list) => {
     try {
@@ -79,7 +89,7 @@ const Board = () => {
   };
 
   // =============================
-  // 🔹 검색
+  // 검색
   // =============================
   const handleSearch = () => {
     if (keyword.length < 2) {
@@ -97,7 +107,17 @@ const Board = () => {
     );
 
     setPosts(filtered);
+    setCurrentPage(1); // ⭐ 수정: 검색 시 1페이지로
   };
+
+  // =============================
+  // ⭐ 수정: 현재 페이지 게시글 계산
+  // =============================
+  const indexOfLastPost = currentPage * POSTS_PER_PAGE;
+  const indexOfFirstPost = indexOfLastPost - POSTS_PER_PAGE;
+  const currentPosts = posts.slice(indexOfFirstPost, indexOfLastPost);
+
+  const totalPages = Math.ceil(posts.length / POSTS_PER_PAGE);
 
   return (
     <div>
@@ -133,7 +153,10 @@ const Board = () => {
 
       {/* 글쓰기 */}
       <div className="mb-3 text-end">
-        <button className="learn-more" onClick={() => navigate("/main/board/write")}>
+        <button
+          className="learn-more"
+          onClick={() => navigate("/main/board/write")}
+        >
           ➕ 글 쓰기
         </button>
       </div>
@@ -145,9 +168,7 @@ const Board = () => {
           value={keyword}
           onChange={(e) => setKeyword(e.target.value)}
           onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              handleSearch();
-            }
+            if (e.key === "Enter") handleSearch();
           }}
           className="form-control"
           placeholder="검색어 입력"
@@ -165,23 +186,32 @@ const Board = () => {
               <th style={{ width: "20%" }}>작성날짜</th>
             </tr>
           </thead>
+
+          {/* ⭐ 수정: currentPosts 사용 */}
           <tbody>
-            {posts.map((p, index) => {
-              // 날짜 YYYY-MM-DD 로 변환
-              const date = p.createdAt ? p.createdAt.slice(0, 10) : "-";
+            {currentPosts.map((p, index) => {
+              const date = p.createdAt
+                ? p.createdAt.slice(0, 10)
+                : "-";
 
               return (
                 <tr
                   key={p.postId}
                   style={{ cursor: "pointer" }}
-                  onClick={() => navigate(`/main/board/detail/${p.postId}`)}
+                  onClick={() =>
+                    navigate(`/main/board/detail/${p.postId}`)
+                  }
                 >
-                  <td>{posts.length - index}</td>
+                  {/* ⭐ 수정: 페이지 고려한 No */}
+                  <td>{posts.length - (indexOfFirstPost + index)}</td>
 
                   <td>
                     {p.title}
                     {tab === "REVIEW" && groupTitles[p.groupId] && (
-                      <span className="text-muted ms-2" style={{ fontSize: "0.8rem" }}>
+                      <span
+                        className="text-muted ms-2"
+                        style={{ fontSize: "0.8rem" }}
+                      >
                         ({groupTitles[p.groupId]})
                       </span>
                     )}
@@ -196,6 +226,38 @@ const Board = () => {
         </table>
       ) : (
         <p>게시글이 없습니다.</p>
+      )}
+
+      {/* ⭐ 수정: 페이지네이션 */}
+      {totalPages > 1 && (
+        <div className="d-flex justify-content-center mt-4">
+          <ul className="pagination">
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map(
+              (page) => (
+                <li
+                  key={page}
+                  className={`page-item ${
+                    page === currentPage ? "active" : ""
+                  }`}
+                >
+                  <button
+                    className="page-link"
+                    onClick={() => setCurrentPage(page)}
+                    style={{
+                      color:
+                        page === currentPage ? "white" : "#a78bfa",
+                      backgroundColor:
+                        page === currentPage ? "#a78bfa" : "white",
+                      border: "1px solid #a78bfa",
+                    }}
+                  >
+                    {page}
+                  </button>
+                </li>
+              )
+            )}
+          </ul>
+        </div>
       )}
     </div>
   );
