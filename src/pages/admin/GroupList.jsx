@@ -183,7 +183,7 @@ const GroupList = () => {
             <th>그룹명</th>
             <th>카테고리</th>
             <th>리더ID</th>
-            <th>인원</th>
+            <th>최대 인원</th>
             <th>상태</th>
             <th>관리</th>
           </tr>
@@ -197,9 +197,7 @@ const GroupList = () => {
               <td>{g.category}</td>
               <td>{g.leaderId}</td>
               <td>
-                {g.maxMembers}/{g.max}
-              </td>
-
+                {g.maxMembers}</td>
               <td>{getStatusBadge(g.status)}</td>
 
               <td>
