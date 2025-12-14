@@ -134,7 +134,12 @@ const BoardDetail = () => {
         <div className="card-body">
           <p style={{ whiteSpace: "pre-wrap" }}>{post.content}</p>
 
-          <p className="text-muted">작성자: {post.leaderName || "익명"}</p>
+          <p>
+            작성자:{" "}
+            {post.type === "NOTICE"
+              ? "관리자" // ⭐ 공지글은 관리자
+              : post.leaderName || "익명"}
+          </p>
 
           {/* REVIEW 글일 때 스터디명 표시 */}
           {post.type === "REVIEW" && groupInfo && (
@@ -195,6 +200,7 @@ const BoardDetail = () => {
           
           {/* 신고 버튼 */}
           <div className="mt-2">
+            {post.type !== "NOTICE" && (
               <button
                 className="btn"
                 style={{
@@ -221,6 +227,7 @@ const BoardDetail = () => {
               >
                 🚨 신고
               </button>
+              )}
             </div>
         </div>
       </div>
