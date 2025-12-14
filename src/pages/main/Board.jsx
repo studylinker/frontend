@@ -112,29 +112,28 @@ const Board = () => {
     setCurrentPage(1); // ⭐ 수정: 검색 시 1페이지로
   };
 
-  // =============================
-  // ⭐ 수정: 현재 페이지 게시글 계산
-  // =============================
+
   const indexOfLastPost = currentPage * POSTS_PER_PAGE;
   const indexOfFirstPost = indexOfLastPost - POSTS_PER_PAGE;
   const currentPosts = posts.slice(indexOfFirstPost, indexOfLastPost);
 
   const totalPages = Math.ceil(posts.length / POSTS_PER_PAGE);
 
-  // =============================
-  // ⭐ 공지 상단 고정: NOTICE 글 분리
-  // =============================
+  // 공지 상단 고정
   const noticePosts = allPosts
-    .filter((p) => p.type === "NOTICE") // ⭐ 공지 상단 고정
-    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)); // ⭐ 공지 상단 고정
+    .filter((p) => p.type === "NOTICE")
+    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
   return (
     <div>
       <h2><strong>게시판</strong></h2>
       <br />
-
+<div
+  className="d-flex align-items-center justify-content-between mb-3"
+  style={{ marginTop: "-10px" }}   // ⭐ 위로 당김 (스크롤 최소화)
+>
       {/* 탭 버튼 */}
-      <div className="btn-group mb-3">
+      <div className="btn-group">
         <button
           className="btn"
           style={{
@@ -161,15 +160,13 @@ const Board = () => {
       </div>
 
       {/* 글쓰기 */}
-      <div className="mb-3 text-end">
         <button
           className="learn-more"
           onClick={() => navigate("/main/board/write")}
         >
           ➕ 글 쓰기
         </button>
-      </div>
-
+</div>
       {/* 검색 */}
       <div className="input-group mb-3">
         <input
