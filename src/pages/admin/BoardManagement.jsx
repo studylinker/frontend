@@ -142,6 +142,7 @@ const BoardManagement = () => {
           onChange={(e) => setNoticeContent(e.target.value)}
         ></textarea>
 
+      <div className="text-end">
         <button
           className="notice-submit-btn"
           onClick={handleCreateNotice}
@@ -149,32 +150,30 @@ const BoardManagement = () => {
           <FaBullhorn className="me-2" />
           공지 등록
         </button>
+      </div>
 
         <style>
         {`
           .notice-submit-btn {
-            border: none;
-            padding: 8px 20px;
-            border-radius: 999px;
-            font-size: 0.9rem;
-            font-weight: 600;
-            color: white;
-            background: linear-gradient(135deg, #4f46e5, #3b82f6);
-            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);
-            display: inline-flex;
-            align-items: center;
-            transition: all 0.2s ease;
-          }
+          border: none;
+          padding: 8px 16px;          /* ✅ 더 짧게 */
+          border-radius: 999px;
+          font-size: 0.9rem;
+          font-weight: 600;
+          color: white;
 
-          .notice-submit-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 16px rgba(59, 130, 246, 0.35);
-            background: linear-gradient(135deg, #4338ca, #2563eb);
-          }
+          background: linear-gradient(135deg, #4f46e5, #3b82f6);
+          box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);
+          transition: all 0.2s ease;
 
-          .notice-submit-btn:active {
-            transform: scale(0.96);
-          }
+          display: inline-flex;        /* ✅ 내용만큼만 */
+          align-items: center;         /* ✅ 세로 중앙 */
+          justify-content: center;     /* ✅ 가로 중앙 (핵심) */
+          gap: 6px;                    /* ✅ 아이콘-텍스트 간격 */
+          min-width: 110px;            /* ✅ 너무 쪼그라드는 거 방지 */
+          text-align: center;
+          white-space: nowrap;         /* ✅ 줄바꿈 방지 */
+        }
         `}
         </style>
       </div>
