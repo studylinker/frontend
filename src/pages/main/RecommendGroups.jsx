@@ -299,7 +299,7 @@ const RecommendGroups = () => {
           onChange={(e) => setAlgorithm(e.target.value)}
           className="form-select d-inline-block w-auto"
         >
-          <option value="locationNLP">위치·자연어 기반 추천</option>
+          <option value="locationNLP">위치·관심사 태그 기반 추천</option>
           <option value="popular">인기 기반 추천</option>
         </select>
       </div>
