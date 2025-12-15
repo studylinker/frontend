@@ -142,9 +142,41 @@ const BoardManagement = () => {
           onChange={(e) => setNoticeContent(e.target.value)}
         ></textarea>
 
-        <button className="btn btn-primary px-4" onClick={handleCreateNotice}>
-          등록하기
+        <button
+          className="notice-submit-btn"
+          onClick={handleCreateNotice}
+        >
+          <FaBullhorn className="me-2" />
+          공지 등록
         </button>
+
+        <style>
+        {`
+          .notice-submit-btn {
+            border: none;
+            padding: 8px 20px;
+            border-radius: 999px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: white;
+            background: linear-gradient(135deg, #4f46e5, #3b82f6);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);
+            display: inline-flex;
+            align-items: center;
+            transition: all 0.2s ease;
+          }
+
+          .notice-submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(59, 130, 246, 0.35);
+            background: linear-gradient(135deg, #4338ca, #2563eb);
+          }
+
+          .notice-submit-btn:active {
+            transform: scale(0.96);
+          }
+        `}
+        </style>
       </div>
 
       {/* ============================ */}
