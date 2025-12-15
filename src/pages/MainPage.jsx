@@ -621,14 +621,6 @@ const MainPage = () => {
                 <h5 className="modal-title d-flex align-items-center">
                   <FiBell className="me-2" size={20} /> <strong>알림</strong>
                 </h5>
-
-                <button
-                  className="btn"
-                  onClick={() => setShowNotifications(false)}
-                  style={{ color: "white" }}
-                >
-                  <FiX size={22} />
-                </button>
               </div>
 
               {/* 📌 바디 */}
