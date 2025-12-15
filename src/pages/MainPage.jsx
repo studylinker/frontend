@@ -356,7 +356,7 @@ const MainPage = () => {
   };
 
   const deleteAllNotifications = async () => {
-    if (!window.confirm("모든 알림 삭제?")) return;
+    if (!window.confirm("모든 알림을 삭제하시겠습니까?")) return;
 
     try {
       await api.delete("/notifications/all");
