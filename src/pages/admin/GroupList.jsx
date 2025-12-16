@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../../api/axios";
 
-import { FaEdit, FaTrash, FaToggleOn, FaToggleOff } from "react-icons/fa";
+import { FaEdit, FaTrash, FaToggleOn, FaToggleOff, FaSearch } from "react-icons/fa";
 import { MdGroups } from "react-icons/md";
 
 import GroupDeleteModal from "./GroupDeleteModal";
@@ -14,7 +14,9 @@ import StatsModal from "./StatsModal";
 const GroupList = () => {
   const navigate = useNavigate();
 
-  // ⭐ 기본 상태를 Active로 설정
+  // ===============================
+  // 상태값
+  // ===============================
   const [groups, setGroups] = useState([
     {
       groupId: 1,
@@ -36,6 +38,8 @@ const GroupList = () => {
     },
   ]);
 
+  const [searchQuery, setSearchQuery] = useState("");
+
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
   const [isStatsModalOpen, setIsStatsModalOpen] = useState(false);
@@ -43,12 +47,14 @@ const GroupList = () => {
   const [currentGroup, setCurrentGroup] = useState(null);
   const [targetAction, setTargetAction] = useState(null);
 
+  // ===============================
+  // 그룹 목록 로딩
+  // ===============================
   useEffect(() => {
     api
       .get("/study-groups")
       .then((res) => {
         if (Array.isArray(res.data) && res.data.length > 0) {
-          // ⭐ 백엔드 ENUM 그대로 사용하도록 변환
           const normalized = res.data.map((g) => ({
             ...g,
             status: (g.status || "ACTIVE").toUpperCase(),
@@ -61,6 +67,9 @@ const GroupList = () => {
       .catch((err) => console.error("그룹 목록 로딩 실패 → 더미 유지:", err));
   }, []);
 
+  // ===============================
+  // 삭제 / 상태 변경
+  // ===============================
   const handleDeleteClick = (group) => {
     setCurrentGroup(group);
     setIsDeleteModalOpen(true);
@@ -79,7 +88,6 @@ const GroupList = () => {
     setIsStatusModalOpen(true);
   };
 
-  // ⭐ 백엔드 ENUM에 맞게 전부 대문자로 전송 + 상태 업데이트
   const handleStatusChangeConfirm = (groupId, action) => {
     const newStatus =
       action === "Activate"
@@ -98,23 +106,19 @@ const GroupList = () => {
     });
   };
 
-  // ⭐ 상태 뱃지(대문자 ENUM 기준)
+  // ===============================
+  // 상태 뱃지 / 버튼
+  // ===============================
   const getStatusBadge = (status) => {
     const s = (status || "").toUpperCase();
 
-    if (s === "ACTIVE")
-      return <span className="badge bg-success">활성</span>;
-
-    if (s === "INACTIVE")
-      return <span className="badge bg-secondary">비활성</span>;
-
-    if (s === "REJECTED")
-      return <span className="badge bg-danger">거절됨</span>;
+    if (s === "ACTIVE") return <span className="badge bg-success">활성</span>;
+    if (s === "INACTIVE") return <span className="badge bg-secondary">비활성</span>;
+    if (s === "REJECTED") return <span className="badge bg-danger">거절됨</span>;
 
     return <span className="badge bg-warning text-dark">대기중</span>;
   };
 
-  // ⭐ 버튼 활성화 조건 (대문자 ENUM 기준)
   const renderStatusButtons = (g) => {
     const s = (g.status || "").toUpperCase();
 
@@ -127,7 +131,6 @@ const GroupList = () => {
           >
             <FaToggleOn className="me-1" /> 활성화
           </button>
-
           <button
             className="btn btn-outline-secondary btn-sm me-2"
             onClick={() => handleStatusChangeClick(g, "Deactivate")}
@@ -159,6 +162,18 @@ const GroupList = () => {
     );
   };
 
+  // ===============================
+  // 🔍 검색 필터링 (BoardManagement 방식)
+  // ===============================
+  let filteredGroups = groups;
+
+  if (searchQuery.trim() !== "") {
+    const lower = searchQuery.toLowerCase();
+    filteredGroups = filteredGroups.filter((g) =>
+      (g.title || "").toLowerCase().includes(lower)
+    );
+  }
+
   return (
     <div>
       <h2 className="mb-3">
@@ -166,8 +181,21 @@ const GroupList = () => {
         스터디 그룹 관리
       </h2>
 
+      {/* 검색 + 통계 */}
       <div className="d-flex justify-content-between mb-3">
-        <input className="form-control w-25" placeholder="그룹명 검색" />
+        <div className="input-group w-25">
+          <span className="input-group-text bg-light">
+            <FaSearch />
+          </span>
+          <input
+            type="text"
+            className="form-control"
+            placeholder="그룹명 검색"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </div>
+
         <button
           className="btn btn-secondary"
           onClick={() => setIsStatsModalOpen(true)}
@@ -176,6 +204,7 @@ const GroupList = () => {
         </button>
       </div>
 
+      {/* 테이블 */}
       <table className="table table-hover align-middle">
         <thead className="table-light">
           <tr>
@@ -190,16 +219,14 @@ const GroupList = () => {
         </thead>
 
         <tbody>
-          {groups.map((g) => (
+          {filteredGroups.map((g) => (
             <tr key={g.groupId}>
               <td>{g.groupId}</td>
               <td>{g.title}</td>
               <td>{g.category}</td>
               <td>{g.leaderId}</td>
-              <td>
-                {g.maxMembers}</td>
+              <td>{g.maxMembers}</td>
               <td>{getStatusBadge(g.status)}</td>
-
               <td>
                 <button
                   className="btn btn-outline-info btn-sm me-2"
@@ -222,6 +249,7 @@ const GroupList = () => {
         </tbody>
       </table>
 
+      {/* 모달 */}
       {isDeleteModalOpen && (
         <GroupDeleteModal
           show={isDeleteModalOpen}
